@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.leaflet-container {
+  background: #041526 !important;
+}
+
+.leaflet-tile {
+  filter:
+    sepia(1)
+    hue-rotate(165deg)
+    saturate(3.2)
+    brightness(0.55)
+    contrast(1.25) !important;
+}
+
+:root {
+  --bg-main: #041526;
+  --bg-secondary: #08263F;
+
+  --card-bg: #0B3354;
+  --border-color: #134B78;
+
+  --primary-blue: #3B82F6;
+
+  --drone-color: #2563EB;
+  --strike-color: #EF4444;
+  --flight-color: #F59E0B;
+  --intercept-color: #22C55E;
+
+  --map-sea: #031321;
+  --map-land: #0A3657;
+}
+
+.maplibregl-popup-content {
+  color: black !important;
+  font-weight: bold;
+}
+
+.maplibregl-popup-content strong {
+  color: black !important;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 18s linear infinite;
+}
+
+.strike-marker {
+  width: 22px;
+  height: 22px;
+  background: #ef4444;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25),
+              0 0 18px rgba(239, 68, 68, 0.9);
+  cursor: pointer;
+  position: relative;
+}
+
+.strike-marker::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  border-radius: 50%;
+  animation: strikePulse 1.4s infinite;
+}
+
+@keyframes strikePulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.maplibregl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 22px !important;
+}
+
+.maplibregl-popup-close-button {
+  color: white !important;
+  font-size: 20px !important;
+  left: 10px !important;
+  right: auto !important;
+  top: 8px !important;
+  z-index: 10 !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: #021B3A !important;
+  border-bottom-color: #021B3A !important;
+}
