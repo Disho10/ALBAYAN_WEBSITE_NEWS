@@ -282,7 +282,7 @@ export default function Home() {
     const maptilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: `https://api.maptiler.com/maps/019e938b-1724-7c83-bc08-c349163f4757/style.json?key=${maptilerKey}`,
+      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${maptilerKey}`,
       center: [35.22, 33.27],
       zoom: 11,
       minZoom: 8,
