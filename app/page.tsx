@@ -303,7 +303,11 @@ export default function Home() {
       } catch (err) {
         console.error("GeoJSON load error:", err);
       }
-      setMapReady(true);
+      // Wait for map to be fully idle (tiles rendered, style applied)
+      // before allowing alert layers to render
+      map.once("idle", () => {
+        setMapReady(true);
+      });
     });
 
     map.on("error", (e) => console.error("Map error:", e));
@@ -314,7 +318,7 @@ export default function Home() {
   // Render alerts on map
   useEffect(() => {
     const map = mapInstance.current;
-    if (!map || !mapReady || !map.isStyleLoaded()) return;
+    if (!map || !mapReady) return;
 
     cleanupHandlersRef.current.forEach((cleanup) => cleanup());
     cleanupHandlersRef.current = [];
