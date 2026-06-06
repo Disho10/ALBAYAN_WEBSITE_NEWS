@@ -1,64 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import { areas } from "@/app/areas";
-
-type AlertItem = {
-  id: number;
-  title: string;
-  area: string;
-  type: string;
-  typeLabel: string;
-  color: string;
-  description: string;
-  lat: number;
-  lng: number;
-  radius: number;
-  expiresAt?: string | null;
-  status?: string;
-  isUrgent?: boolean;
-};
-
-const alertTypes = [
-  { type: "strike", label: "🚨 غارة", color: "#EF4444", radius: 900 },
-  { type: "artillery", label: "💥 قصف مدفعي", color: "#DC2626", radius: 900 },
-  { type: "drone", label: "🚁 نشاط مسيّر", color: "#1E5EFF", radius: 1200 },
-  { type: "threat", label: "⚠️ تهديد", color: "#F59E0B", radius: 1000 },
-  { type: "enemy_position", label: "📍 تمركز العدو", color: "#A855F7", radius: 1000 },
-  { type: "army_position", label: "🟢 انتشار الجيش اللبناني", color: "#22C55E", radius: 1000 },
-  { type: "traffic", label: "🚗 حادث سير", color: "#38BDF8", radius: 700 },
-  { type: "crowd", label: "⭕ اشتباكات", color: "#DC2626", radius: 700 },
-  { type: "fire", label: "🔥 حريق", color: "#F97316", radius: 800 },
-  { type: "injuries", label: "🚑 إصابات", color: "#E11D48", radius: 800 },
-];
-
-function getSavedAlerts(): AlertItem[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    return JSON.parse(localStorage.getItem("alerts") || "[]");
-  } catch {
-    return [];
-  }
-}
+import { supabase } from "@/app/lib/supabase";
+import type { AlertItem } from "@/app/lib/types";
+import { ALERT_TYPES } from "@/app/lib/types";
+import Footer from "@/app/components/Footer";
 
 function getRemainingTime(expiresAt?: string | null) {
   if (!expiresAt) return "دائم";
-
   const diff = new Date(expiresAt).getTime() - Date.now();
   if (diff <= 0) return "انتهى";
-
   const minutes = Math.floor(diff / 60000);
   if (minutes < 60) return `${minutes} دقيقة`;
-
   const hours = Math.floor(minutes / 60);
   const remaining = minutes % 60;
-
   return remaining === 0 ? `${hours} ساعة` : `${hours} ساعة و ${remaining} دقيقة`;
 }
 
 export default function AdminPage() {
-  const [alerts, setAlerts] = useState<AlertItem[]>(getSavedAlerts());
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [type, setType] = useState("strike");
   const [areaSearch, setAreaSearch] = useState("صور");
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
@@ -68,14 +30,15 @@ export default function AdminPage() {
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
-  
-  const ADMIN_PASSWORD = "Nimda@admin$4";
 
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAllowed, setIsAllowed] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   const selectedType = useMemo(
-    () => alertTypes.find((item) => item.type === type) || alertTypes[0],
+    () => ALERT_TYPES.find((item) => item.type === type) || ALERT_TYPES[0],
     [type]
   );
 
@@ -90,10 +53,47 @@ export default function AdminPage() {
     );
   }, [areaSearch]);
 
-  function saveAlerts(nextAlerts: AlertItem[]) {
-    localStorage.setItem("alerts", JSON.stringify(nextAlerts));
-    setAlerts(nextAlerts);
-    window.dispatchEvent(new Event("storage"));
+  // Check existing session on load
+  useEffect(() => {
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAllowed(!!session);
+      setAuthLoading(false);
+      if (session) loadAlerts();
+    }
+    checkSession();
+  }, []);
+
+  async function handleLogin() {
+    setAuthError("");
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      setAuthError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setAuthLoading(false);
+    } else {
+      setIsAllowed(true);
+      setAuthLoading(false);
+      loadAlerts();
+    }
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setIsAllowed(false);
+    setAlerts([]);
+  }
+
+  async function loadAlerts() {
+    const { data, error } = await supabase
+      .from("alerts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) setAlerts(data);
   }
 
   function resetForm() {
@@ -105,7 +105,7 @@ export default function AdminPage() {
     setIsUrgent(false);
   }
 
-  function publishAlert() {
+  async function publishAlert() {
     const foundArea = areas.find((item) => item.name === areaSearch);
 
     if (!foundArea && !lat && !lng) {
@@ -121,126 +121,121 @@ export default function AdminPage() {
       return;
     }
 
-    const expiresAt =
+    const expires_at =
       duration === "permanent"
         ? null
         : new Date(Date.now() + Number(duration) * 60000).toISOString();
 
-    const newAlert: AlertItem = {
-      id: Date.now(),
+    const { error } = await supabase.from("alerts").insert({
       title: selectedType.label,
       area: foundArea ? foundArea.name : areaSearch,
       type: selectedType.type,
-      typeLabel: selectedType.label,
+      type_label: selectedType.label,
       color: selectedType.color,
       description,
       lat: finalLat,
       lng: finalLng,
       radius: Number(radius) || selectedType.radius,
-      expiresAt,
+      expires_at,
       status: "active",
-      isUrgent,
-    };
+      is_urgent: isUrgent,
+    });
 
-    saveAlerts([newAlert, ...alerts]);
-    resetForm();
-    alert("تم نشر الحدث على الخريطة");
+    if (error) {
+      alert("حدث خطأ أثناء النشر: " + error.message);
+    } else {
+      resetForm();
+      loadAlerts();
+      alert("تم نشر الحدث على الخريطة");
+    }
   }
 
-  function hideAlert(id: number) {
-    saveAlerts(
-      alerts.map((alert) =>
-        alert.id === id ? { ...alert, status: "hidden" } : alert
-      )
-    );
+  async function hideAlert(id: number) {
+    await supabase.from("alerts").update({ status: "hidden" }).eq("id", id);
+    loadAlerts();
   }
 
-  function showAlert(id: number) {
-    saveAlerts(
-      alerts.map((alert) =>
-        alert.id === id ? { ...alert, status: "active" } : alert
-      )
-    );
+  async function showAlert(id: number) {
+    await supabase.from("alerts").update({ status: "active" }).eq("id", id);
+    loadAlerts();
   }
 
-  function deleteAlert(id: number) {
+  async function deleteAlert(id: number) {
     if (!confirm("هل تريد حذف هذا الحدث نهائيًا؟")) return;
-    saveAlerts(alerts.filter((alert) => alert.id !== id));
+    await supabase.from("alerts").delete().eq("id", id);
+    loadAlerts();
   }
 
-  function clearExpired() {
-    saveAlerts(
-      alerts.filter((alert) => {
-        if (!alert.expiresAt) return true;
-        return new Date(alert.expiresAt).getTime() > Date.now();
-      })
-    );
+  async function clearExpired() {
+    await supabase
+      .from("alerts")
+      .delete()
+      .not("expires_at", "is", null)
+      .lt("expires_at", new Date().toISOString());
+    loadAlerts();
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (!confirm("هل تريد حذف جميع الأحداث؟")) return;
-    saveAlerts([]);
+    await supabase.from("alerts").delete().neq("id", 0);
+    loadAlerts();
   }
 
   const activeCount = alerts.filter((a) => a.status !== "hidden").length;
-  const urgentCount = alerts.filter((a) => a.isUrgent).length;
+  const urgentCount = alerts.filter((a) => a.is_urgent).length;
   const hiddenCount = alerts.filter((a) => a.status === "hidden").length;
+
+  if (authLoading) {
+    return (
+      <main className="min-h-screen bg-[#00152D] text-white flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#134B78] border-t-[#3B82F6] rounded-full animate-spin" />
+      </main>
+    );
+  }
 
   if (!isAllowed) {
     return (
-      <main
-        className="min-h-screen bg-[#00152D] text-white flex items-center justify-center p-6"
-        dir="rtl"
-      >
+      <main className="min-h-screen bg-[#00152D] text-white flex items-center justify-center p-6" dir="rtl">
         <div className="w-full max-w-md bg-[#021B3A] border border-[#134B78] rounded-3xl p-8 text-center shadow-[0_0_40px_rgba(59,130,246,0.12)]">
-          <p className="text-red-400 font-bold mb-3 tracking-widest">
-            — ADMIN ACCESS
-          </p>
+          <p className="text-red-400 font-bold mb-3 tracking-widest">— ADMIN ACCESS</p>
+          <h1 className="text-3xl font-extrabold mb-3">دخول لوحة التحكم</h1>
+          <p className="text-slate-400 mb-6">هذه الصفحة مخصصة للأشخاص المخوّلين فقط.</p>
 
-          <h1 className="text-3xl font-extrabold mb-3">
-            دخول لوحة التحكم
-          </h1>
+          {authError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-red-400 text-sm font-bold">
+              {authError}
+            </div>
+          )}
 
-          <p className="text-slate-400 mb-6">
-            هذه الصفحة مخصصة للأشخاص المخوّلين فقط.
-          </p>
+          <input
+            type="email"
+            placeholder="البريد الإلكتروني"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-3"
+            dir="ltr"
+          />
 
           <input
             type="password"
-            placeholder="أدخل كلمة المرور"
+            placeholder="كلمة المرور"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                if (password === ADMIN_PASSWORD) {
-                  setIsAllowed(true);
-                } else {
-                  alert("كلمة المرور غير صحيحة");
-                }
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
             className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-4"
+            dir="ltr"
           />
 
           <button
-            onClick={() => {
-              if (password === ADMIN_PASSWORD) {
-                setIsAllowed(true);
-              } else {
-                alert("كلمة المرور غير صحيحة");
-              }
-            }}
+            onClick={handleLogin}
             className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold"
           >
             دخول
           </button>
 
-          <a
-            href="/"
-            className="block mt-5 text-[#3B82F6] hover:text-white transition"
-          >
+          <Link href="/" className="block mt-5 text-[#3B82F6] hover:text-white transition">
             العودة للخريطة
-          </a>
+          </Link>
         </div>
       </main>
     );
@@ -251,19 +246,13 @@ export default function AdminPage() {
       <section className="max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 border-b border-[#134B78] pb-6">
           <div>
-            <a href="/" className="text-[#3B82F6] font-bold hover:text-white transition">
-              العودة للخريطة
-            </a>
-
-            <h1 className="text-4xl font-extrabold mt-4">
-              لوحة تحكم AlBayan Alert Map
-            </h1>
-
-            <p className="text-slate-300 mt-3">
-              إدارة الأحداث المباشرة، نشر التنبيهات، وإخفاء أو حذف البلاغات من الخريطة.
-            </p>
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-[#3B82F6] font-bold hover:text-white transition">العودة للخريطة</Link>
+              <button onClick={handleLogout} className="text-red-400 hover:text-red-300 text-sm font-bold transition">تسجيل الخروج</button>
+            </div>
+            <h1 className="text-4xl font-extrabold mt-4">لوحة تحكم AlBayan Alert Map</h1>
+            <p className="text-slate-300 mt-3">إدارة الأحداث المباشرة، نشر التنبيهات، وإخفاء أو حذف البلاغات من الخريطة.</p>
           </div>
-
           <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 px-4 py-2 rounded-full">
             <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
             <span className="font-bold">النظام يعمل</span>
@@ -275,89 +264,41 @@ export default function AdminPage() {
             <p className="text-slate-400 text-sm">الأحداث النشطة</p>
             <h2 className="text-3xl font-extrabold mt-2">{activeCount}</h2>
           </div>
-
           <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
             <p className="text-slate-400 text-sm">العاجلة</p>
-            <h2 className="text-3xl font-extrabold mt-2 text-red-400">
-              {urgentCount}
-            </h2>
+            <h2 className="text-3xl font-extrabold mt-2 text-red-400">{urgentCount}</h2>
           </div>
-
           <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
             <p className="text-slate-400 text-sm">المخفية</p>
-            <h2 className="text-3xl font-extrabold mt-2 text-slate-300">
-              {hiddenCount}
-            </h2>
+            <h2 className="text-3xl font-extrabold mt-2 text-slate-300">{hiddenCount}</h2>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Create alert form */}
           <div className="lg:col-span-1 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 shadow-[0_0_35px_rgba(59,130,246,0.12)]">
-            <p className="text-red-400 font-bold mb-3">— CREATE ALERT</p>
-
+            <p className="text-red-400 font-bold mb-3">— إنشاء تنبيه</p>
             <h2 className="text-2xl font-bold mb-6">إضافة حدث جديد</h2>
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  نوع الحدث
-                </label>
-
-                <select
-                  value={type}
-                  onChange={(e) => {
-                    const nextType = e.target.value;
-                    const next = alertTypes.find((item) => item.type === nextType);
-                    setType(nextType);
-                    if (next) setRadius(String(next.radius));
-                  }}
-                  className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                >
-                  {alertTypes.map((item) => (
-                    <option key={item.type} value={item.type}>
-                      {item.label}
-                    </option>
-                  ))}
+                <label className="block text-sm text-slate-300 mb-2">نوع الحدث</label>
+                <select value={type} onChange={(e) => { const nextType = e.target.value; const next = ALERT_TYPES.find((item) => item.type === nextType); setType(nextType); if (next) setRadius(String(next.radius)); }} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                  {ALERT_TYPES.map((item) => (<option key={item.type} value={item.type}>{item.label}</option>))}
                 </select>
               </div>
 
               <div className="relative">
-                <label className="block text-sm text-slate-300 mb-2">
-                  البلدة
-                </label>
-
-                <input
-                  type="text"
-                  value={areaSearch}
-                  placeholder="اكتب اسم البلدة..."
-                  onChange={(e) => {
-                    setAreaSearch(e.target.value);
-                    setShowAreaSuggestions(true);
-                  }}
-                  onFocus={() => setShowAreaSuggestions(true)}
-                  className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                />
-
+                <label className="block text-sm text-slate-300 mb-2">البلدة</label>
+                <input type="text" value={areaSearch} placeholder="اكتب اسم البلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => setShowAreaSuggestions(true)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" />
                 {showAreaSuggestions && areaSearch && (
                   <div className="absolute z-50 mt-2 w-full bg-[#021B3A] border border-[#134B78] rounded-xl overflow-hidden max-h-64 overflow-y-auto shadow-xl">
                     {filteredAreas.length > 0 ? (
                       filteredAreas.map((item) => (
-                        <button
-                          key={item.name}
-                          type="button"
-                          onClick={() => {
-                            setAreaSearch(item.name);
-                            setShowAreaSuggestions(false);
-                          }}
-                          className="w-full text-right px-4 py-3 hover:bg-[#0A3563] transition border-b border-white/5"
-                        >
-                          {item.name}
-                        </button>
+                        <button key={item.name} type="button" onClick={() => { setAreaSearch(item.name); setShowAreaSuggestions(false); }} className="w-full text-right px-4 py-3 hover:bg-[#0A3563] transition border-b border-white/5">{item.name}</button>
                       ))
                     ) : (
-                      <div className="px-4 py-3 text-slate-400">
-                        لا توجد نتائج
-                      </div>
+                      <div className="px-4 py-3 text-slate-400">لا توجد نتائج</div>
                     )}
                   </div>
                 )}
@@ -365,43 +306,19 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
-                    Lat اختياري
-                  </label>
-
-                  <input
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                    placeholder={String(selectedArea.lat)}
-                    className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                  />
+                  <label className="block text-sm text-slate-300 mb-2">Lat اختياري</label>
+                  <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder={String(selectedArea.lat)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
                 </div>
-
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
-                    Lng اختياري
-                  </label>
-
-                  <input
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                    placeholder={String(selectedArea.lng)}
-                    className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                  />
+                  <label className="block text-sm text-slate-300 mb-2">Lng اختياري</label>
+                  <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder={String(selectedArea.lng)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
-                    مدة الظهور
-                  </label>
-
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                  >
+                  <label className="block text-sm text-slate-300 mb-2">مدة الظهور</label>
+                  <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
                     <option value="30">30 دقيقة</option>
                     <option value="60">ساعة</option>
                     <option value="180">3 ساعات</option>
@@ -411,74 +328,36 @@ export default function AdminPage() {
                     <option value="permanent">دائم</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">
-                    نطاق التأثير بالمتر
-                  </label>
-
-                  <input
-                    value={radius}
-                    onChange={(e) => setRadius(e.target.value)}
-                    className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
-                  />
+                  <label className="block text-sm text-slate-300 mb-2">نطاق التأثير بالمتر</label>
+                  <input value={radius} onChange={(e) => setRadius(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  وصف الحدث
-                </label>
-
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  placeholder="مثال: استهداف محيط البلدة دون معلومات عن إصابات حتى الآن..."
-                  className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none"
-                />
+                <label className="block text-sm text-slate-300 mb-2">وصف الحدث</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="مثال: استهداف محيط البلدة دون معلومات عن إصابات حتى الآن..." className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none" />
               </div>
 
               <label className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isUrgent}
-                  onChange={(e) => setIsUrgent(e.target.checked)}
-                  className="w-5 h-5"
-                />
+                <input type="checkbox" checked={isUrgent} onChange={(e) => setIsUrgent(e.target.checked)} className="w-5 h-5" />
                 <span className="font-bold">تمييز كخبر عاجل أعلى الخريطة</span>
               </label>
 
-              <button
-                onClick={publishAlert}
-                className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-4 font-extrabold text-lg"
-              >
-                نشر الحدث على الخريطة
-              </button>
+              <button onClick={publishAlert} className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-4 font-extrabold text-lg">نشر الحدث على الخريطة</button>
             </div>
           </div>
 
+          {/* Alerts list */}
           <div className="lg:col-span-2 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 shadow-[0_0_35px_rgba(59,130,246,0.12)]">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div>
-                <p className="text-red-400 font-bold mb-2">— LIVE EVENTS</p>
+                <p className="text-red-400 font-bold mb-2">— الأحداث</p>
                 <h2 className="text-2xl font-bold">إدارة الأحداث الحالية</h2>
               </div>
-
               <div className="flex gap-2">
-                <button
-                  onClick={clearExpired}
-                  className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition"
-                >
-                  حذف المنتهي
-                </button>
-
-                <button
-                  onClick={clearAll}
-                  className="bg-red-600 hover:bg-red-700 rounded-xl px-4 py-2 font-bold transition"
-                >
-                  حذف الكل
-                </button>
+                <button onClick={clearExpired} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition">حذف المنتهي</button>
+                <button onClick={clearAll} className="bg-red-600 hover:bg-red-700 rounded-xl px-4 py-2 font-bold transition">حذف الكل</button>
               </div>
             </div>
 
@@ -486,85 +365,38 @@ export default function AdminPage() {
               <div className="text-center py-16 border border-dashed border-[#134B78] rounded-2xl">
                 <div className="text-5xl mb-4">🗺️</div>
                 <h3 className="text-xl font-bold mb-2">لا توجد أحداث بعد</h3>
-                <p className="text-slate-400">
-                  أضف أول حدث ليظهر مباشرة على الخريطة.
-                </p>
+                <p className="text-slate-400">أضف أول حدث ليظهر مباشرة على الخريطة.</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[720px] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[720px] overflow-y-auto pl-1">
                 {alerts.map((alert) => {
                   const isHidden = alert.status === "hidden";
-
                   return (
-                    <div
-                      key={alert.id}
-                      className={`rounded-2xl border p-5 transition ${
-                        isHidden
-                          ? "bg-slate-900/60 border-slate-700 opacity-70"
-                          : "bg-[#001F3F] border-[#134B78]"
-                      }`}
-                    >
+                    <div key={alert.id} className={`rounded-2xl border p-5 transition ${isHidden ? "bg-slate-900/60 border-slate-700 opacity-70" : "bg-[#001F3F] border-[#134B78]"}`}>
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-3 mb-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: alert.color }}
-                            />
-                            <h3 className="text-xl font-bold">{alert.typeLabel}</h3>
-
-                            {alert.isUrgent && (
-                              <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                                عاجل
-                              </span>
-                            )}
-
-                            {isHidden && (
-                              <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-full">
-                                مخفي
-                              </span>
-                            )}
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: alert.color }} />
+                            <h3 className="text-xl font-bold">{alert.type_label}</h3>
+                            {alert.is_urgent && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">عاجل</span>}
+                            {isHidden && <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-full">مخفي</span>}
                           </div>
-
                           <p className="text-slate-300 mb-1">📍 {alert.area}</p>
-
-                          {alert.description && (
-                            <p className="text-slate-400 leading-7 mt-2">
-                              {alert.description}
-                            </p>
-                          )}
-
-                          <div className="flex flex-wrap gap-3 text-xs text-slate-400 mt-4">
+                          {alert.description && <p className="text-slate-400 leading-7 mt-2">{alert.description}</p>}
+                          <div className="flex flex-wrap gap-3 text-xs text-slate-400 mt-4" dir="ltr">
                             <span>Lat: {alert.lat}</span>
                             <span>Lng: {alert.lng}</span>
                             <span>Radius: {alert.radius}m</span>
-                            <span>⏳ {getRemainingTime(alert.expiresAt)}</span>
+                            <span dir="rtl">⏳ {getRemainingTime(alert.expires_at)}</span>
                           </div>
                         </div>
-
                         <div className="flex md:flex-col gap-2 min-w-[120px]">
                           {isHidden ? (
-                            <button
-                              onClick={() => showAlert(alert.id)}
-                              className="bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2 font-bold transition"
-                            >
-                              إظهار
-                            </button>
+                            <button onClick={() => showAlert(alert.id)} className="bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2 font-bold transition">إظهار</button>
                           ) : (
-                            <button
-                              onClick={() => hideAlert(alert.id)}
-                              className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-lg px-4 py-2 font-bold transition"
-                            >
-                              إخفاء
-                            </button>
+                            <button onClick={() => hideAlert(alert.id)} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-lg px-4 py-2 font-bold transition">إخفاء</button>
                           )}
-
-                          <button
-                            onClick={() => deleteAlert(alert.id)}
-                            className="bg-red-600 hover:bg-red-700 rounded-lg px-4 py-2 font-bold transition"
-                          >
-                            حذف
-                          </button>
+                          <button onClick={() => deleteAlert(alert.id)} className="bg-red-600 hover:bg-red-700 rounded-lg px-4 py-2 font-bold transition">حذف</button>
                         </div>
                       </div>
                     </div>
@@ -576,32 +408,7 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <footer
-        dir="ltr"
-        className="mt-16 border-t border-white/10 pt-6 text-center text-sm text-slate-500"
-      >
-        <div className="flex flex-wrap justify-center gap-3">
-          <a href="/faq" className="hover:text-white transition">
-            FAQ
-          </a>
-
-          <span>·</span>
-
-          <a href="/terms" className="hover:text-white transition">
-            Terms & Conditions
-          </a>
-
-          <span>·</span>
-
-          <a href="/privacy" className="hover:text-white transition">
-            Privacy Policy
-          </a>
-
-          <span>·</span>
-
-          <span>© 2026 — by AlBayan Alert Map · All rights reserved</span>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

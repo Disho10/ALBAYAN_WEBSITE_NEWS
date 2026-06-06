@@ -1,4 +1,6 @@
-export const areas = [
+import type { Area } from "@/app/lib/types";
+
+export const areas: Area[] = [
   {
     "name": "أبو شاش",
     "nameAr": "أبو شاش",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Footer from "@/app/components/Footer";
 
 const termsSections = [
   {
@@ -239,26 +240,7 @@ export default function TermsPage() {
         </div>
       </section>
 
-      <footer
-        dir="ltr"
-        className="mt-16 border-t border-white/10 pt-6 text-center text-sm text-slate-500"
-      >
-        <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/faq" className="hover:text-white transition">
-            FAQ
-          </Link>
-          <span>·</span>
-          <Link href="/terms" className="hover:text-white transition">
-            Terms & Conditions
-          </Link>
-          <span>·</span>
-          <Link href="/privacy" className="hover:text-white transition">
-            Privacy Policy
-          </Link>
-          <span>·</span>
-          <span>© 2026 — by AlBayan Alert Map · All rights reserved</span>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

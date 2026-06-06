@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import Footer from "@/app/components/Footer";
+import { TELEGRAM_CHANNEL_URL, WHATSAPP_URL } from "@/app/lib/types";
 
 const faqs = [
   {
@@ -88,12 +91,12 @@ export default function FAQPage() {
   return (
     <main className="min-h-screen bg-[#00152D] text-white p-6" dir="rtl">
       <section className="max-w-6xl mx-auto">
-        <a
+        <Link
           href="/"
           className="inline-flex items-center text-[#3B82F6] font-bold hover:text-white transition"
         >
           العودة للخريطة
-        </a>
+        </Link>
 
         <div className="mt-10 mb-10 text-center">
           <p className="text-red-400 font-bold mb-3 tracking-widest">
@@ -229,12 +232,12 @@ export default function FAQPage() {
                 المنصة.
               </p>
 
-              <a
+              <Link
                 href="/report"
                 className="block text-center bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold"
               >
                 إرسال بلاغ
-              </a>
+              </Link>
             </div>
 
             <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-3xl p-6">
@@ -251,12 +254,12 @@ export default function FAQPage() {
                 التنبيهات.
               </p>
 
-              <a
+              <Link
                 href="/donate"
                 className="block text-center bg-white text-red-600 hover:bg-slate-100 transition rounded-xl px-5 py-3 font-bold"
               >
                 دعم المشروع
-              </a>
+              </Link>
             </div>
 
             <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6">
@@ -274,17 +277,21 @@ export default function FAQPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <a
-                  href="#"
+                  href={TELEGRAM_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-center border border-[#134B78] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
                 >
-                  Telegram
+                  تلغرام
                 </a>
 
                 <a
-                  href="#"
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-center border border-[#134B78] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
                 >
-                  WhatsApp
+                  واتساب
                 </a>
               </div>
             </div>
@@ -292,34 +299,7 @@ export default function FAQPage() {
         </div>
       </section>
 
-    <footer
-    dir="ltr"
-    className="mt-16 border-t border-white/10 pt-6 text-center text-sm text-slate-500"
-    >
-    <div className="flex flex-wrap justify-center gap-3">
-        <a href="/faq" className="hover:text-white transition">
-        FAQ
-        </a>
-
-        <span>·</span>
-
-        <a href="/terms" className="hover:text-white transition">
-        Terms & Conditions
-        </a>
-
-        <span>·</span>
-
-        <a href="/privacy" className="hover:text-white transition">
-        Privacy Policy
-        </a>
-
-        <span>·</span>
-
-        <span>
-        © 2026 — by AlBayan Alert Map · All rights reserved
-        </span>
-    </div>
-    </footer>
+    <Footer />
     </main>
   );
 }
