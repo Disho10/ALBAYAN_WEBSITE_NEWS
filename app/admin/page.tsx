@@ -6,6 +6,7 @@ import { areas } from "@/app/areas";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem } from "@/app/lib/types";
 import { ALERT_TYPES } from "@/app/lib/types";
+import type { Area } from "@/app/lib/types";
 import Footer from "@/app/components/Footer";
 
 function getRemainingTime(expiresAt?: string | null) {
@@ -22,14 +23,15 @@ function getRemainingTime(expiresAt?: string | null) {
 export default function AdminPage() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [type, setType] = useState("strike");
-  const [areaSearch, setAreaSearch] = useState("صور");
+  const [areaSearch, setAreaSearch] = useState("");
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
+  const [selectedAreas, setSelectedAreas] = useState<Area[]>([]);
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("180");
   const [radius, setRadius] = useState("900");
-  const [lat, setLat] = useState("");
-  const [lng, setLng] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,37 +44,58 @@ export default function AdminPage() {
     [type]
   );
 
-  const selectedArea = useMemo(
-    () => areas.find((item) => item.name === areaSearch) || areas[0],
-    [areaSearch]
-  );
-
   const filteredAreas = useMemo(() => {
-    return areas.filter((item) =>
-      item.name.toLowerCase().includes(areaSearch.toLowerCase())
-    );
-  }, [areaSearch]);
+    if (!areaSearch.trim()) return [];
+    const alreadySelected = new Set(selectedAreas.map((a) => a.pcode));
+    return areas
+      .filter(
+        (item) =>
+          !alreadySelected.has(item.pcode) &&
+          (item.name.includes(areaSearch) ||
+            item.nameEn.toLowerCase().includes(areaSearch.toLowerCase()))
+      )
+      .slice(0, 50);
+  }, [areaSearch, selectedAreas]);
 
-  // Check existing session on load
+  function addArea(area: Area) {
+    if (!selectedAreas.find((a) => a.pcode === area.pcode)) {
+      setSelectedAreas((prev) => [...prev, area]);
+    }
+    setAreaSearch("");
+    setShowAreaSuggestions(false);
+  }
+
+  function removeArea(pcode: string) {
+    setSelectedAreas((prev) => prev.filter((a) => a.pcode !== pcode));
+  }
+
   useEffect(() => {
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setIsAllowed(!!session);
       setAuthLoading(false);
       if (session) loadAlerts();
     }
     checkSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAllowed(!!session);
+      if (session) loadAlerts();
+    });
+
+    return () => { listener.subscription.unsubscribe(); };
   }, []);
 
   async function handleLogin() {
     setAuthError("");
     setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setAuthError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      setAuthError(error.message === "Invalid login credentials"
+        ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+        : error.message);
       setAuthLoading(false);
     } else {
       setIsAllowed(true);
@@ -93,61 +116,68 @@ export default function AdminPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) setAlerts(data);
+    if (error) {
+      console.error("Failed to load alerts:", error);
+      setStatusMsg({ text: "خطأ في تحميل الأحداث: " + error.message, ok: false });
+    } else {
+      setAlerts(data || []);
+    }
   }
 
   function resetForm() {
+    setSelectedAreas([]);
+    setAreaSearch("");
     setDescription("");
     setDuration("180");
     setRadius(String(selectedType.radius));
-    setLat("");
-    setLng("");
     setIsUrgent(false);
   }
 
   async function publishAlert() {
-    const foundArea = areas.find((item) => item.name === areaSearch);
-
-    if (!foundArea && !lat && !lng) {
-      alert("يرجى اختيار بلدة من الاقتراحات أو إدخال الإحداثيات يدويًا");
+    if (selectedAreas.length === 0) {
+      setStatusMsg({ text: "يرجى اختيار بلدة واحدة على الأقل", ok: false });
       return;
     }
 
-    const finalLat = lat ? Number(lat) : (foundArea || selectedArea).lat;
-    const finalLng = lng ? Number(lng) : (foundArea || selectedArea).lng;
-
-    if (!finalLat || !finalLng) {
-      alert("يرجى إدخال إحداثيات صحيحة");
-      return;
-    }
+    setPublishing(true);
+    setStatusMsg(null);
 
     const expires_at =
       duration === "permanent"
         ? null
         : new Date(Date.now() + Number(duration) * 60000).toISOString();
 
-    const { error } = await supabase.from("alerts").insert({
+    const rows = selectedAreas.map((area) => ({
       title: selectedType.label,
-      area: foundArea ? foundArea.name : areaSearch,
+      area: area.name,
       type: selectedType.type,
       type_label: selectedType.label,
       color: selectedType.color,
       description,
-      lat: finalLat,
-      lng: finalLng,
+      lat: area.lat,
+      lng: area.lng,
       radius: Number(radius) || selectedType.radius,
       expires_at,
       status: "active",
       is_urgent: isUrgent,
-    });
+    }));
+
+    const { error } = await supabase.from("alerts").insert(rows);
 
     if (error) {
-      alert("حدث خطأ أثناء النشر: " + error.message);
+      console.error("Insert error:", error);
+      setStatusMsg({ text: "خطأ أثناء النشر: " + error.message + (error.hint ? " — " + error.hint : ""), ok: false });
     } else {
       resetForm();
       loadAlerts();
-      alert("تم نشر الحدث على الخريطة");
+      setStatusMsg({
+        text: `تم نشر ${rows.length} حدث على الخريطة بنجاح`,
+        ok: true,
+      });
+      setTimeout(() => setStatusMsg(null), 4000);
     }
+
+    setPublishing(false);
   }
 
   async function hideAlert(id: number) {
@@ -167,17 +197,19 @@ export default function AdminPage() {
   }
 
   async function clearExpired() {
-    await supabase
+    const { error } = await supabase
       .from("alerts")
       .delete()
       .not("expires_at", "is", null)
       .lt("expires_at", new Date().toISOString());
+    if (error) console.error("Clear expired error:", error);
     loadAlerts();
   }
 
   async function clearAll() {
-    if (!confirm("هل تريد حذف جميع الأحداث؟")) return;
-    await supabase.from("alerts").delete().neq("id", 0);
+    if (!confirm("هل تريد حذف جميع الأحداث؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    const { error } = await supabase.from("alerts").delete().gte("id", 0);
+    if (error) console.error("Clear all error:", error);
     loadAlerts();
   }
 
@@ -215,7 +247,6 @@ export default function AdminPage() {
             className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-3"
             dir="ltr"
           />
-
           <input
             type="password"
             placeholder="كلمة المرور"
@@ -225,14 +256,9 @@ export default function AdminPage() {
             className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-4"
             dir="ltr"
           />
-
-          <button
-            onClick={handleLogin}
-            className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold"
-          >
+          <button onClick={handleLogin} className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold">
             دخول
           </button>
-
           <Link href="/" className="block mt-5 text-[#3B82F6] hover:text-white transition">
             العودة للخريطة
           </Link>
@@ -259,6 +285,13 @@ export default function AdminPage() {
           </div>
         </header>
 
+        {/* Status message */}
+        {statusMsg && (
+          <div className={`mb-6 p-4 rounded-2xl font-bold text-center ${statusMsg.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}>
+            {statusMsg.text}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
             <p className="text-slate-400 text-sm">الأحداث النشطة</p>
@@ -283,35 +316,64 @@ export default function AdminPage() {
             <div className="space-y-5">
               <div>
                 <label className="block text-sm text-slate-300 mb-2">نوع الحدث</label>
-                <select value={type} onChange={(e) => { const nextType = e.target.value; const next = ALERT_TYPES.find((item) => item.type === nextType); setType(nextType); if (next) setRadius(String(next.radius)); }} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
-                  {ALERT_TYPES.map((item) => (<option key={item.type} value={item.type}>{item.label}</option>))}
+                <select value={type} onChange={(e) => { setType(e.target.value); const next = ALERT_TYPES.find((i) => i.type === e.target.value); if (next) setRadius(String(next.radius)); }} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                  {ALERT_TYPES.map((item) => (
+                    <option key={item.type} value={item.type}>{item.label}</option>
+                  ))}
                 </select>
               </div>
 
-              <div className="relative">
-                <label className="block text-sm text-slate-300 mb-2">البلدة</label>
-                <input type="text" value={areaSearch} placeholder="اكتب اسم البلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => setShowAreaSuggestions(true)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" />
-                {showAreaSuggestions && areaSearch && (
-                  <div className="absolute z-50 mt-2 w-full bg-[#021B3A] border border-[#134B78] rounded-xl overflow-hidden max-h-64 overflow-y-auto shadow-xl">
-                    {filteredAreas.length > 0 ? (
-                      filteredAreas.map((item) => (
-                        <button key={item.name} type="button" onClick={() => { setAreaSearch(item.name); setShowAreaSuggestions(false); }} className="w-full text-right px-4 py-3 hover:bg-[#0A3563] transition border-b border-white/5">{item.name}</button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-3 text-slate-400">لا توجد نتائج</div>
-                    )}
+              {/* Multi-village selector */}
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  البلدات المستهدفة
+                  {selectedAreas.length > 0 && (
+                    <span className="text-[#3B82F6] mr-2">({selectedAreas.length} بلدة)</span>
+                  )}
+                </label>
+
+                {/* Selected areas chips */}
+                {selectedAreas.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {selectedAreas.map((area) => (
+                      <span key={area.pcode} className="flex items-center gap-1 bg-[#3B82F6]/20 border border-[#3B82F6]/40 text-[#93C5FD] rounded-lg px-3 py-1.5 text-sm font-bold">
+                        {area.name}
+                        <button onClick={() => removeArea(area.pcode)} className="hover:text-red-400 transition text-lg leading-none mr-1">&times;</button>
+                      </span>
+                    ))}
+                    <button onClick={() => setSelectedAreas([])} className="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded-lg border border-red-400/30 hover:bg-red-400/10 transition">
+                      مسح الكل
+                    </button>
                   </div>
                 )}
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-slate-300 mb-2">Lat اختياري</label>
-                  <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder={String(selectedArea.lat)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-300 mb-2">Lng اختياري</label>
-                  <input value={lng} onChange={(e) => setLng(e.target.value)} placeholder={String(selectedArea.lng)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
+                {/* Search input */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={areaSearch}
+                    placeholder="ابحث عن بلدة وأضفها..."
+                    onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }}
+                    onFocus={() => { if (areaSearch) setShowAreaSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 200)}
+                    className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]"
+                  />
+                  {showAreaSuggestions && filteredAreas.length > 0 && (
+                    <div className="absolute z-50 mt-2 w-full bg-[#021B3A] border border-[#134B78] rounded-xl overflow-hidden max-h-64 overflow-y-auto shadow-xl">
+                      {filteredAreas.map((item, index) => (
+                        <button
+                          key={item.pcode || `area-${index}`}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => addArea(item)}
+                          className="w-full text-right px-4 py-3 hover:bg-[#0A3563] transition border-b border-white/5"
+                        >
+                          <span className="font-bold">{item.name}</span>
+                          <span className="text-slate-400 text-sm mr-2">— {item.district}، {item.governorate}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -344,7 +406,17 @@ export default function AdminPage() {
                 <span className="font-bold">تمييز كخبر عاجل أعلى الخريطة</span>
               </label>
 
-              <button onClick={publishAlert} className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-4 font-extrabold text-lg">نشر الحدث على الخريطة</button>
+              <button
+                onClick={publishAlert}
+                disabled={publishing || selectedAreas.length === 0}
+                className={`w-full transition rounded-xl px-5 py-4 font-extrabold text-lg ${publishing || selectedAreas.length === 0 ? "bg-slate-600 cursor-not-allowed" : "bg-[#3B82F6] hover:bg-[#2563EB]"}`}
+              >
+                {publishing
+                  ? "جاري النشر..."
+                  : selectedAreas.length === 0
+                  ? "اختر بلدة واحدة على الأقل"
+                  : `نشر ${selectedAreas.length > 1 ? selectedAreas.length + " أحداث" : "الحدث"} على الخريطة`}
+              </button>
             </div>
           </div>
 
@@ -356,6 +428,7 @@ export default function AdminPage() {
                 <h2 className="text-2xl font-bold">إدارة الأحداث الحالية</h2>
               </div>
               <div className="flex gap-2">
+                <button onClick={loadAlerts} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition">تحديث</button>
                 <button onClick={clearExpired} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition">حذف المنتهي</button>
                 <button onClick={clearAll} className="bg-red-600 hover:bg-red-700 rounded-xl px-4 py-2 font-bold transition">حذف الكل</button>
               </div>
@@ -365,7 +438,8 @@ export default function AdminPage() {
               <div className="text-center py-16 border border-dashed border-[#134B78] rounded-2xl">
                 <div className="text-5xl mb-4">🗺️</div>
                 <h3 className="text-xl font-bold mb-2">لا توجد أحداث بعد</h3>
-                <p className="text-slate-400">أضف أول حدث ليظهر مباشرة على الخريطة.</p>
+                <p className="text-slate-400 mb-4">أضف أول حدث ليظهر مباشرة على الخريطة.</p>
+                <p className="text-slate-500 text-sm">إذا كنت ترى هذه الرسالة بعد إضافة أحداث، تأكد من تشغيل ملف <code className="bg-slate-800 px-2 py-1 rounded">supabase-setup.sql</code> في Supabase SQL Editor.</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-[720px] overflow-y-auto pl-1">
@@ -407,7 +481,6 @@ export default function AdminPage() {
           </div>
         </div>
       </section>
-
       <Footer />
     </main>
   );

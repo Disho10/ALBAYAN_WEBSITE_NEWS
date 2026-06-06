@@ -1,13 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Settings, Menu, X } from "lucide-react";
+import { Settings, Menu, X, LocateFixed } from "lucide-react";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem } from "@/app/lib/types";
 import { TELEGRAM_CHANNEL_URL, WHATSAPP_URL } from "@/app/lib/types";
+
+type UserSettings = {
+  soundEnabled: boolean;
+  urgentBar: boolean;
+  highlightAreas: boolean;
+  selectedArea: string;
+  enabledAlertTypes: string[];
+};
+
+const DEFAULT_SETTINGS: UserSettings = {
+  soundEnabled: true,
+  urgentBar: true,
+  highlightAreas: true,
+  selectedArea: "صور",
+  enabledAlertTypes: [],
+};
+
+function loadSettings(): UserSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const saved = localStorage.getItem("albayan-settings");
+    if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+  } catch {}
+  return DEFAULT_SETTINGS;
+}
 
 function createCircleGeoJSON(lng: number, lat: number, radiusInMeters: number) {
   const points = 64;
@@ -15,7 +40,6 @@ function createCircleGeoJSON(lng: number, lat: number, radiusInMeters: number) {
   const earthRadius = 6371000;
   const latRad = (lat * Math.PI) / 180;
   const lngRad = (lng * Math.PI) / 180;
-
   for (let i = 0; i <= points; i++) {
     const angle = (i * 2 * Math.PI) / points;
     const newLat = Math.asin(
@@ -30,12 +54,7 @@ function createCircleGeoJSON(lng: number, lat: number, radiusInMeters: number) {
       );
     coords.push([(newLng * 180) / Math.PI, (newLat * 180) / Math.PI]);
   }
-
-  return {
-    type: "Feature",
-    geometry: { type: "Polygon", coordinates: [coords] },
-    properties: {},
-  };
+  return { type: "Feature", geometry: { type: "Polygon", coordinates: [coords] }, properties: {} };
 }
 
 function getRemainingTime(expiresAt?: string | null) {
@@ -55,6 +74,34 @@ function matchesFilter(alert: AlertItem, filter: string) {
   if (filter === "all") return true;
   if (filter === "strikes") return alert.type === "strike" || alert.type === "artillery";
   return alert.type === filter;
+}
+
+function playAlertSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = "sine";
+    gain.gain.value = 0.15;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.stop(ctx.currentTime + 0.6);
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.frequency.value = 1100;
+      osc2.type = "sine";
+      gain2.gain.value = 0.15;
+      osc2.start();
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+      osc2.stop(ctx.currentTime + 1);
+    }, 200);
+  } catch {}
 }
 
 function createAlertPopupHTML(alert: AlertItem) {
@@ -87,6 +134,8 @@ export default function Home() {
   const activeLayerIdsRef = useRef<string[]>([]);
   const activeSourceIdsRef = useRef<string[]>([]);
   const cleanupHandlersRef = useRef<(() => void)[]>([]);
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const prevAlertIdsRef = useRef<Set<number>>(new Set());
 
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -94,6 +143,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [, forceUpdate] = useState(0);
 
   const visibleAlerts = useMemo(
@@ -106,7 +156,11 @@ export default function Home() {
     [alerts]
   );
 
-  async function loadAlerts() {
+  useEffect(() => {
+    setUserSettings(loadSettings());
+  }, []);
+
+  const loadAlerts = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
         .from("alerts")
@@ -116,25 +170,38 @@ export default function Home() {
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
-      setAlerts(data || []);
+
+      const newAlerts = data || [];
+
+      // Check for new urgent alerts and play sound
+      if (userSettings.soundEnabled) {
+        const newIds = new Set(newAlerts.map((a) => a.id));
+        const prevIds = prevAlertIdsRef.current;
+        for (const alert of newAlerts) {
+          if (alert.is_urgent && !prevIds.has(alert.id)) {
+            playAlertSound();
+            break;
+          }
+        }
+        prevAlertIdsRef.current = newIds;
+      }
+
+      setAlerts(newAlerts);
       setError(null);
-    } catch (err) {
-      console.error("Failed to load alerts:", err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("Failed to load alerts:", message);
       setError("تعذر تحميل التنبيهات. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [userSettings.soundEnabled]);
 
   function showAlertPopup(alert: AlertItem, lngLat: maplibregl.LngLatLike) {
     const map = mapInstance.current;
     if (!map) return;
     if (activePopupRef.current) activePopupRef.current.remove();
-    activePopupRef.current = new maplibregl.Popup({
-      closeButton: true,
-      closeOnClick: true,
-      offset: 18,
-    })
+    activePopupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 18 })
       .setLngLat(lngLat)
       .setHTML(createAlertPopupHTML(alert))
       .addTo(map);
@@ -147,25 +214,49 @@ export default function Home() {
     showAlertPopup(alert, [alert.lng, alert.lat]);
   }
 
-  // Load alerts & subscribe to real-time changes
+  function locateUser() {
+    const map = mapInstance.current;
+    if (!map) return;
+    if (!navigator.geolocation) {
+      alert("المتصفح لا يدعم تحديد الموقع");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { longitude, latitude } = pos.coords;
+        map.flyTo({ center: [longitude, latitude], zoom: 13, speed: 1.4 });
+        if (userMarkerRef.current) userMarkerRef.current.remove();
+        const el = document.createElement("div");
+        el.style.width = "18px";
+        el.style.height = "18px";
+        el.style.background = "#3B82F6";
+        el.style.border = "3px solid white";
+        el.style.borderRadius = "50%";
+        el.style.boxShadow = "0 0 0 6px rgba(59,130,246,0.3), 0 0 12px rgba(59,130,246,0.5)";
+        userMarkerRef.current = new maplibregl.Marker({ element: el })
+          .setLngLat([longitude, latitude])
+          .addTo(map);
+      },
+      () => {
+        alert("تعذر تحديد موقعك. تأكد من تفعيل خدمات الموقع.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  // Load alerts & subscribe to real-time
   useEffect(() => {
     loadAlerts();
 
     const channel = supabase
       .channel("alerts-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "alerts" },
-        () => {
-          loadAlerts();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "alerts" }, () => {
+        loadAlerts();
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    return () => { supabase.removeChannel(channel); };
+  }, [loadAlerts]);
 
   // Refresh expiry timers
   useEffect(() => {
@@ -174,7 +265,7 @@ export default function Home() {
       forceUpdate((v) => v + 1);
     }, 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [loadAlerts]);
 
   // Initialize map
   useEffect(() => {
@@ -187,7 +278,7 @@ export default function Home() {
         true
       );
     }
-    
+
     const maptilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
     const map = new maplibregl.Map({
       container: mapRef.current,
@@ -209,16 +300,13 @@ export default function Home() {
         if (!map.getSource("admin3")) {
           map.addSource("admin3", { type: "geojson", data: admin3 });
         }
-        setMapReady(true);
       } catch (err) {
         console.error("GeoJSON load error:", err);
-        setMapReady(true);
       }
+      setMapReady(true);
     });
 
-    map.on("error", (e) => {
-      console.error("Map error:", e);
-    });
+    map.on("error", (e) => console.error("Map error:", e));
 
     return () => map.remove();
   }, []);
@@ -242,84 +330,51 @@ export default function Home() {
     activeSourceIdsRef.current = [];
 
     visibleAlerts.forEach((alert) => {
-      const isStrike =
-        alert.type === "strike" ||
-        alert.type === "artillery" ||
-        alert.type_label?.includes("غارة") ||
-        alert.type_label?.includes("مدفعي");
+      const isStrike = alert.type === "strike" || alert.type === "artillery";
+      const isAreaHighlight = alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position";
 
       if (isStrike) {
-        const sameAreaIndex = visibleAlerts
-          .filter(
-            (item) =>
-              (item.type === "strike" || item.type === "artillery" ||
-                item.type_label?.includes("غارة") || item.type_label?.includes("مدفعي")) &&
-              item.area === alert.area
-          )
-          .findIndex((item) => item.id === alert.id);
-
+        const sameAreaAlerts = visibleAlerts.filter((a) => (a.type === "strike" || a.type === "artillery") && a.area === alert.area);
+        const sameAreaIndex = sameAreaAlerts.findIndex((a) => a.id === alert.id);
         const offset = 0.0035;
-        const positions = [
-          [0, 0], [offset, 0], [-offset, 0], [0, offset], [0, -offset],
-          [offset, offset], [-offset, -offset], [offset, -offset], [-offset, offset],
-        ];
+        const positions = [[0,0],[offset,0],[-offset,0],[0,offset],[0,-offset],[offset,offset],[-offset,-offset],[offset,-offset],[-offset,offset]];
         const pos = positions[sameAreaIndex % positions.length];
         const markerLng = alert.lng + pos[0];
         const markerLat = alert.lat + pos[1];
 
         const el = document.createElement("div");
-        el.style.width = "22px";
-        el.style.height = "22px";
+        el.className = "strike-marker";
         el.style.background = alert.type === "artillery" ? "#DC2626" : "#ef4444";
-        el.style.border = "3px solid white";
-        el.style.borderRadius = "50%";
-        el.style.boxShadow = "0 0 18px rgba(239,68,68,1)";
-        el.style.cursor = "pointer";
 
         el.addEventListener("click", (event) => {
           event.stopPropagation();
           showAlertPopup(alert, [markerLng, markerLat]);
         });
 
-        const marker = new maplibregl.Marker({ element: el })
-          .setLngLat([markerLng, markerLat])
-          .addTo(map);
+        const marker = new maplibregl.Marker({ element: el }).setLngLat([markerLng, markerLat]).addTo(map);
         strikeMarkersRef.current.push(marker);
         return;
       }
 
-      if (alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position") {
+      if (isAreaHighlight && userSettings.highlightAreas) {
         const areaLayerId = `area-${alert.id}`;
         const areaLineId = `area-line-${alert.id}`;
-        const color =
-          alert.type === "threat" ? "#F59E0B" :
-          alert.type === "enemy_position" ? "#A855F7" : "#22C55E";
+        const color = alert.type === "threat" ? "#F59E0B" : alert.type === "enemy_position" ? "#A855F7" : "#22C55E";
 
-        map.addLayer({
-          id: areaLayerId, type: "fill", source: "admin3",
-          paint: { "fill-color": color, "fill-opacity": 0.45 },
-          filter: ["==", ["get", "adm3_name1"], alert.area],
-        });
-        map.addLayer({
-          id: areaLineId, type: "line", source: "admin3",
-          paint: { "line-color": color, "line-width": 3 },
-          filter: ["==", ["get", "adm3_name1"], alert.area],
-        });
+        map.addLayer({ id: areaLayerId, type: "fill", source: "admin3", paint: { "fill-color": color, "fill-opacity": 0.45 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
+        map.addLayer({ id: areaLineId, type: "line", source: "admin3", paint: { "line-color": color, "line-width": 3 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
 
         const clickHandler = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
         const mouseEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
         const mouseLeaveHandler = () => { map.getCanvas().style.cursor = ""; };
-
         map.on("click", areaLayerId, clickHandler);
         map.on("mouseenter", areaLayerId, mouseEnterHandler);
         map.on("mouseleave", areaLayerId, mouseLeaveHandler);
-
         cleanupHandlersRef.current.push(() => {
           map.off("click", areaLayerId, clickHandler);
           map.off("mouseenter", areaLayerId, mouseEnterHandler);
           map.off("mouseleave", areaLayerId, mouseLeaveHandler);
         });
-
         activeLayerIdsRef.current.push(areaLayerId, areaLineId);
         return;
       }
@@ -331,33 +386,23 @@ export default function Home() {
 
       map.addSource(sourceId, { type: "geojson", data: circleData as any });
       activeSourceIdsRef.current.push(sourceId);
-
-      map.addLayer({
-        id: fillLayerId, type: "fill", source: sourceId,
-        paint: { "fill-color": alert.color || "#1E5EFF", "fill-opacity": 0.28 },
-      });
-      map.addLayer({
-        id: lineLayerId, type: "line", source: sourceId,
-        paint: { "line-color": alert.color || "#4E7DFF", "line-width": 2 },
-      });
+      map.addLayer({ id: fillLayerId, type: "fill", source: sourceId, paint: { "fill-color": alert.color || "#1E5EFF", "fill-opacity": 0.28 } });
+      map.addLayer({ id: lineLayerId, type: "line", source: sourceId, paint: { "line-color": alert.color || "#4E7DFF", "line-width": 2 } });
 
       const clickHandler = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
       const mouseEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
       const mouseLeaveHandler = () => { map.getCanvas().style.cursor = ""; };
-
       map.on("click", fillLayerId, clickHandler);
       map.on("mouseenter", fillLayerId, mouseEnterHandler);
       map.on("mouseleave", fillLayerId, mouseLeaveHandler);
-
       cleanupHandlersRef.current.push(() => {
         map.off("click", fillLayerId, clickHandler);
         map.off("mouseenter", fillLayerId, mouseEnterHandler);
         map.off("mouseleave", fillLayerId, mouseLeaveHandler);
       });
-
       activeLayerIdsRef.current.push(fillLayerId, lineLayerId);
     });
-  }, [visibleAlerts, mapReady]);
+  }, [visibleAlerts, mapReady, userSettings.highlightAreas]);
 
   const filterItems = [
     { value: "all", label: "الكل" },
@@ -379,12 +424,8 @@ export default function Home() {
             <span className="text-xl">🗺️</span>
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-extrabold text-[#3B82F6] leading-tight">
-              AlBayan Alert Map
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">
-              تنبيهات ميدانية مباشرة — لبنان
-            </p>
+            <h1 className="text-xl md:text-2xl font-extrabold text-[#3B82F6] leading-tight">AlBayan Alert Map</h1>
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">تنبيهات ميدانية مباشرة — لبنان</p>
           </div>
         </div>
 
@@ -399,26 +440,18 @@ export default function Home() {
           <div className="text-slate-300">⚡ تحديثات مباشرة</div>
         </div>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-2">
-          <Link href="/settings" className="w-10 h-10 flex items-center justify-center bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl transition" title="الإعدادات">
-            <Settings size={18} />
-          </Link>
+          <Link href="/settings" className="w-10 h-10 flex items-center justify-center bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl transition" title="الإعدادات"><Settings size={18} /></Link>
           <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="h-10 flex items-center gap-2 bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] transition rounded-xl px-3 text-sm font-bold">تلغرام</a>
           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="h-10 flex items-center gap-2 bg-green-600 hover:bg-green-700 transition rounded-xl px-3 text-sm font-bold">واتساب</a>
           <Link href="/donate" className="h-10 flex items-center gap-2 bg-white hover:bg-slate-200 text-[#00152D] transition rounded-xl px-3 text-sm font-extrabold">♡ ادعمنا</Link>
           <Link href="/report" className="h-10 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 transition rounded-xl px-3 text-sm font-extrabold">⚠ بلاغ</Link>
         </nav>
 
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden w-10 h-10 flex items-center justify-center bg-[#0A3563] border border-[#134B78] rounded-xl"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
+        <button className="md:hidden w-10 h-10 flex items-center justify-center bg-[#0A3563] border border-[#134B78] rounded-xl" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Mobile dropdown menu */}
         {mobileMenuOpen && (
           <div className="absolute top-20 left-0 right-0 bg-[#021B3A] border-b border-[#134B78] p-4 flex flex-col gap-2 md:hidden z-50">
             <Link href="/report" onClick={() => setMobileMenuOpen(false)} className="bg-orange-500 hover:bg-orange-600 transition rounded-xl px-4 py-3 text-center font-bold">⚠ إرسال بلاغ</Link>
@@ -432,7 +465,6 @@ export default function Home() {
       </header>
 
       <div className="relative h-[calc(100vh-80px)] w-full">
-        {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 z-40 bg-[#00152D] flex flex-col items-center justify-center gap-4">
             <div className="w-12 h-12 border-4 border-[#134B78] border-t-[#3B82F6] rounded-full animate-spin" />
@@ -440,7 +472,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Error banner */}
         {error && (
           <div className="absolute top-0 left-0 right-0 z-30 bg-red-900/90 text-white px-4 py-3 text-center text-sm font-bold">
             {error}
@@ -448,8 +479,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Urgent alert banner */}
-        {urgentAlerts.length > 0 && (
+        {userSettings.urgentBar && urgentAlerts.length > 0 && (
           <div className="absolute top-0 left-0 right-0 z-30 bg-red-700 text-white h-12 flex items-center justify-center shadow-lg">
             {urgentAlerts.slice(0, 1).map((alert) => (
               <div key={alert.id} className="flex items-center justify-center gap-3">
@@ -464,31 +494,22 @@ export default function Home() {
           </div>
         )}
 
-        {/* Filter bar — scrollable on mobile */}
-        <div
-          className={`absolute left-1/2 -translate-x-1/2 z-20 flex gap-2 rounded-xl border border-[#134B78] bg-[#021B3A]/95 px-3 py-2 max-w-[calc(100vw-32px)] overflow-x-auto filter-scroll ${
-            urgentAlerts.length > 0 ? "top-16" : "top-4"
-          }`}
-        >
+        <div className={`absolute left-1/2 -translate-x-1/2 z-20 flex gap-2 rounded-xl border border-[#134B78] bg-[#021B3A]/95 px-3 py-2 max-w-[calc(100vw-32px)] overflow-x-auto filter-scroll ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16" : "top-4"}`}>
           {filterItems.map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setActiveFilter(item.value)}
-              className={`px-3 py-1 rounded text-sm whitespace-nowrap flex-shrink-0 ${
-                activeFilter === item.value
-                  ? "bg-[#1E5EFF]"
-                  : "bg-[#0A3563] hover:bg-[#134B78]"
-              }`}
-            >
+            <button key={item.value} onClick={() => setActiveFilter(item.value)} className={`px-3 py-1 rounded text-sm whitespace-nowrap flex-shrink-0 ${activeFilter === item.value ? "bg-[#1E5EFF]" : "bg-[#0A3563] hover:bg-[#134B78]"}`}>
               {item.label}
             </button>
           ))}
         </div>
 
-        {/* Map */}
         <div ref={mapRef} className="h-full w-full" />
 
-        {/* Legend — hidden on small mobile */}
+        {/* Locate me button */}
+        <button onClick={locateUser} className="absolute bottom-4 right-4 z-20 w-12 h-12 bg-[#021B3A]/95 hover:bg-[#134B78] border border-[#134B78] rounded-xl flex items-center justify-center transition shadow-lg" title="حدد موقعي">
+          <LocateFixed size={22} className="text-[#3B82F6]" />
+        </button>
+
+        {/* Legend */}
         <div className="absolute bottom-4 left-4 z-20 w-56 lg:w-64 rounded-xl border border-[#134B78] bg-[#021B3A]/95 p-4 shadow-lg hidden sm:block">
           <h3 className="font-bold mb-3 text-[#3B82F6]">مفتاح الخريطة</h3>
           <div className="space-y-2 text-sm">
@@ -501,33 +522,21 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar — hidden on mobile, toggleable */}
-        <aside
-          className={`absolute right-4 z-10 w-72 lg:w-80 overflow-y-auto rounded-xl border border-[#134B78] bg-[#021B3A]/95 p-4 hidden md:block ${
-            urgentAlerts.length > 0
-              ? "top-20 max-h-[calc(100vh-180px)]"
-              : "top-4 max-h-[85vh]"
-          }`}
-        >
+        {/* Sidebar */}
+        <aside className={`absolute right-4 z-10 w-72 lg:w-80 overflow-y-auto rounded-xl border border-[#134B78] bg-[#021B3A]/95 p-4 hidden md:block ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-20 max-h-[calc(100vh-180px)]" : "top-4 max-h-[85vh]"}`}>
           <h2 className="text-lg font-bold mb-4">الأحداث المباشرة</h2>
           {visibleAlerts.length === 0 ? (
             <p className="text-sm text-slate-300">لا توجد أحداث حاليًا</p>
           ) : (
             <div className="space-y-3">
               {visibleAlerts.map((alert) => (
-                <button
-                  key={alert.id}
-                  onClick={() => openAlert(alert)}
-                  className="w-full text-right rounded-lg bg-[#0A3563] hover:bg-[#134B78] p-3 border border-[#134B78]"
-                >
+                <button key={alert.id} onClick={() => openAlert(alert)} className="w-full text-right rounded-lg bg-[#0A3563] hover:bg-[#134B78] p-3 border border-[#134B78]">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-bold">{alert.type_label}</span>
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: alert.color }} />
                   </div>
                   <div className="text-sm text-slate-200 mt-1">{alert.area}</div>
-                  {alert.description && (
-                    <div className="text-xs text-slate-300 mt-2 line-clamp-2">{alert.description}</div>
-                  )}
+                  {alert.description && <div className="text-xs text-slate-300 mt-2 line-clamp-2">{alert.description}</div>}
                   <div className="text-xs text-orange-300 mt-2">⏳ ينتهي بعد: {getRemainingTime(alert.expires_at)}</div>
                 </button>
               ))}
