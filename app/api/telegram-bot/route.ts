@@ -153,9 +153,9 @@ const FALLBACK = { name: "شمال فلسطين المحتلة", lat: 33.05, lng
 // === Alert type detection ===
 // Arabic Tzofar format: 🔴 اللون الأحمر ... خط المواجهة / اختراق مسيرات
 // Hebrew format: צבע אדום / חדירת כלי טיס
-const IS_ALERT = [/اللون الأحمر/i, /انذار احمر/i, /צבע אדום/i, /red alert/i, /🔴/];
+const IS_ALERT = [/اللون الأحمر/i, /انذار احمر/i, /צבע אדום/i, /red alert/i, /🔴/, /تسلل طائرة/i, /طائرة بدون طيار/i, /✈️/, /خطالمواجهة/i, /خط المواجهة/i];
 const IS_END = [/انتهى الحدث/i, /لقد انتهى/i];
-const IS_DRONE = [/مسيّر/i, /مسير/i, /طائر/i, /כלי טיס/i, /drone/i, /uav/i];
+const IS_DRONE = [/مسيّر/i, /مسير/i, /طائر/i, /بدون طيار/i, /تسلل طائرة/i, /כלי טיס/i, /drone/i, /uav/i, /✈️/];
 
 function isAlert(text: string): boolean {
   return IS_ALERT.some((p) => p.test(text));
@@ -172,13 +172,16 @@ function isDroneAlert(text: string): boolean {
 function extractAreas(text: string): string[] {
   const areas: string[] = [];
 
-  // Arabic Tzofar format: "خط المواجهة: راموت نافتالي, يفتاح (15 ثانية)"
-  // Also: "لقد انتهى الحدث في يفتاح, راموت نافتالي"
+  // Arabic Tzofar format: "• خطالمواجهة: راموت نافتالي, يفتاح (15 ثانية)"
+  // Drone format: "✈️ تسلل طائرة بدون طيار ... • خطالمواجهة: تل ابيب"
+  // End format: "لقد انتهى الحدث في يفتاح, راموت نافتالي"
   const patterns = [
-    /خط\s*المواجهة\s*:\s*([^(\[]+)/i,
+    /خطالمواجهة\s*:\s*([^(\[]+)/i,
+    /خط\s+المواجهة\s*:\s*([^(\[]+)/i,
     /اختراق[^:]*:\s*([^(\[]+)/i,
     /الحدث في\s+([^(\[]+)/i,
-    /[:：]\s*([^(\[🔴]+)/,
+    /بدون طيار[^:]*:\s*([^(\[]+)/i,
+    /تسلل[^:]*:\s*([^(\[]+)/i,
   ];
 
   for (const pattern of patterns) {
