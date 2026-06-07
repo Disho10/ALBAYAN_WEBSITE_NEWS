@@ -316,11 +316,14 @@ export default function Home() {
       } catch (err) {
         console.error("Israeli GeoJSON load error:", err);
       }
-      // Wait for map to be fully idle (tiles rendered, style applied)
-      // before allowing alert layers to render
-      map.once("idle", () => {
+      // Set map ready — use idle event or fallback
+      if (map.isStyleLoaded() && map.loaded()) {
         setMapReady(true);
-      });
+      } else {
+        map.once("idle", () => {
+          setMapReady(true);
+        });
+      }
     });
 
     map.on("error", (e) => console.error("Map error:", e));
@@ -588,4 +591,5 @@ export default function Home() {
         </aside>
       </div>
     </main>
-  );}
+  );
+}
