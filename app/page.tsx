@@ -215,7 +215,7 @@ export default function Home() {
       center: [35.22, 33.27], zoom: 11, minZoom: 6, maxZoom: 15,
     });
     mapInstance.current = map;
-    map.addControl(new maplibregl.NavigationControl(), "top-left");
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
     map.on("load", async () => {
       try {
@@ -398,13 +398,13 @@ export default function Home() {
         {/* Map */}
         <div ref={mapRef} className="h-full w-full" />
 
-        {/* Locate button */}
-        <button onClick={locateUser} className="absolute bottom-4 right-4 z-20 w-10 h-10 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-lg flex items-center justify-center transition" title="موقعي">
+        {/* Locate button - above map controls */}
+        <button onClick={locateUser} className="absolute bottom-28 right-4 z-20 w-10 h-10 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-lg flex items-center justify-center transition" title="موقعي">
           <LocateFixed size={18} className="text-[#5BA4E6]" />
         </button>
 
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 z-20 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md p-3 hidden sm:block">
+        {/* Legend - desktop only, bottom right above controls */}
+        <div className="absolute bottom-40 right-4 z-20 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md p-3 hidden lg:block">
           <h3 className="font-bold text-xs mb-2 text-[#8B9BB4]">مفتاح الخريطة</h3>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#EF4444]" /><span>غارة / قصف</span></div>
@@ -416,17 +416,17 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Events panel - works on both desktop and mobile */}
-        <div className={`absolute right-4 z-10 ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16" : "top-3"}`}>
+        {/* Events panel - bottom left */}
+        <div className="absolute left-4 bottom-16 z-10">
           <button onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`flex items-center gap-2 border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md px-3 py-2 text-xs transition hover:bg-[#1B2D45] ${sidebarOpen ? "rounded-t-lg border-b-0 w-64 md:w-72" : "rounded-lg"}`}>
+            className={`flex items-center gap-2 border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md px-3 py-2 text-xs transition hover:bg-[#1B2D45] ${sidebarOpen ? "rounded-b-lg border-t-0 w-64 md:w-72" : "rounded-lg"}`}>
             <span className="bg-[#E53935] text-white text-[10px] px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{visibleAlerts.length}</span>
             <span className="flex-1 text-right">{sidebarOpen ? "الأحداث المباشرة" : "الأحداث"}</span>
-            {sidebarOpen ? <ChevronUp size={14} className="text-[#64748B]" /> : <ChevronDown size={14} className="text-[#64748B]" />}
+            {sidebarOpen ? <ChevronDown size={14} className="text-[#64748B]" /> : <ChevronUp size={14} className="text-[#64748B]" />}
           </button>
 
           {sidebarOpen && (
-            <div className="w-64 md:w-72 max-h-[50vh] md:max-h-[calc(100vh-160px)] overflow-y-auto rounded-b-lg border border-[#243447] border-t-0 bg-[#111D2E]/95 backdrop-blur-md">
+            <div className="w-64 md:w-72 max-h-[50vh] overflow-y-auto rounded-t-lg border border-[#243447] border-b-0 bg-[#111D2E]/95 backdrop-blur-md absolute bottom-full left-0">
               <div className="p-2 space-y-1.5">
                 {visibleAlerts.length === 0 ? (
                   <p className="text-xs text-[#64748B] text-center py-8">لا توجد أحداث حالياً</p>
