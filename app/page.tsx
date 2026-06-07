@@ -294,24 +294,27 @@ export default function Home() {
 
     map.on("load", async () => {
       try {
-        const [lbnRes, ilRes] = await Promise.all([
-          fetch("/data/lbn_admin3.geojson"),
-          fetch("/data/israel_areas.geojson"),
-        ]);
-        if (lbnRes.ok) {
-          const admin3 = await lbnRes.json();
+        const res = await fetch("/data/lbn_admin3.geojson");
+        if (res.ok) {
+          const admin3 = await res.json();
           if (!map.getSource("admin3")) {
             map.addSource("admin3", { type: "geojson", data: admin3 });
           }
         }
-        if (ilRes.ok) {
-          const israelAreas = await ilRes.json();
+      } catch (err) {
+        console.error("Lebanese GeoJSON load error:", err);
+      }
+
+      try {
+        const res = await fetch("/data/israel_areas.geojson");
+        if (res.ok) {
+          const israelAreas = await res.json();
           if (!map.getSource("israel-areas")) {
             map.addSource("israel-areas", { type: "geojson", data: israelAreas });
           }
         }
       } catch (err) {
-        console.error("GeoJSON load error:", err);
+        console.error("Israeli GeoJSON load error:", err);
       }
       // Wait for map to be fully idle (tiles rendered, style applied)
       // before allowing alert layers to render
@@ -585,5 +588,4 @@ export default function Home() {
         </aside>
       </div>
     </main>
-  );
-}
+  );}
