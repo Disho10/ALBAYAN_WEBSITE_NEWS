@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
     const rows = alertAreas.map((area) => ({
       title: "🚨 صافرات إنذار",
       area: area.name,
-      type: "threat",
+      type: "siren",
       type_label: "🚨 صافرات إنذار",
       color: "#EF4444",
       description: `صافرات إنذار في ${area.name}. يرجى أخذ الحيطة والحذر.`,
