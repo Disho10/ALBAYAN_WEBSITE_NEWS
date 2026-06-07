@@ -282,7 +282,7 @@ export default function Home() {
     const maptilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=oe8wsyw3KZlCR6sTzrpY`,
+      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${maptilerKey}`,
       center: [35.22, 33.27],
       zoom: 11,
       minZoom: 8,
@@ -294,11 +294,21 @@ export default function Home() {
 
     map.on("load", async () => {
       try {
-        const res = await fetch("/data/lbn_admin3.geojson");
-        if (!res.ok) throw new Error("Failed to load GeoJSON");
-        const admin3 = await res.json();
-        if (!map.getSource("admin3")) {
-          map.addSource("admin3", { type: "geojson", data: admin3 });
+        const [lbnRes, ilRes] = await Promise.all([
+          fetch("/data/lbn_admin3.geojson"),
+          fetch("/data/israel_areas.geojson"),
+        ]);
+        if (lbnRes.ok) {
+          const admin3 = await lbnRes.json();
+          if (!map.getSource("admin3")) {
+            map.addSource("admin3", { type: "geojson", data: admin3 });
+          }
+        }
+        if (ilRes.ok) {
+          const israelAreas = await ilRes.json();
+          if (!map.getSource("israel-areas")) {
+            map.addSource("israel-areas", { type: "geojson", data: israelAreas });
+          }
         }
       } catch (err) {
         console.error("GeoJSON load error:", err);
@@ -336,6 +346,7 @@ export default function Home() {
     visibleAlerts.forEach((alert) => {
       const isStrike = alert.type === "strike" || alert.type === "artillery";
       const isAreaHighlight = alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position";
+      const isSiren = alert.type === "siren";
 
       if (isStrike) {
         const sameAreaAlerts = visibleAlerts.filter((a) => (a.type === "strike" || a.type === "artillery") && a.area === alert.area);
@@ -357,6 +368,29 @@ export default function Home() {
 
         const marker = new maplibregl.Marker({ element: el }).setLngLat([markerLng, markerLat]).addTo(map);
         strikeMarkersRef.current.push(marker);
+        return;
+      }
+
+      // Siren alerts — highlight Israeli city areas in red
+      if (isSiren && map.getSource("israel-areas")) {
+        const sirenFillId = `siren-fill-${alert.id}`;
+        const sirenLineId = `siren-line-${alert.id}`;
+
+        map.addLayer({ id: sirenFillId, type: "fill", source: "israel-areas", paint: { "fill-color": "#EF4444", "fill-opacity": 0.5 }, filter: ["==", ["get", "name"], alert.area] });
+        map.addLayer({ id: sirenLineId, type: "line", source: "israel-areas", paint: { "line-color": "#FF0000", "line-width": 2, "line-dasharray": [3, 2] }, filter: ["==", ["get", "name"], alert.area] });
+
+        const clickHandler = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
+        const mouseEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
+        const mouseLeaveHandler = () => { map.getCanvas().style.cursor = ""; };
+        map.on("click", sirenFillId, clickHandler);
+        map.on("mouseenter", sirenFillId, mouseEnterHandler);
+        map.on("mouseleave", sirenFillId, mouseLeaveHandler);
+        cleanupHandlersRef.current.push(() => {
+          map.off("click", sirenFillId, clickHandler);
+          map.off("mouseenter", sirenFillId, mouseEnterHandler);
+          map.off("mouseleave", sirenFillId, mouseLeaveHandler);
+        });
+        activeLayerIdsRef.current.push(sirenFillId, sirenLineId);
         return;
       }
 
@@ -417,6 +451,7 @@ export default function Home() {
     { value: "army_position", label: "الجيش" },
     { value: "traffic", label: "حوادث" },
     { value: "crowd", label: "اشتباكات" },
+    { value: "siren", label: "صافرات إنذار" },
   ];
 
   return (
@@ -523,6 +558,7 @@ export default function Home() {
             <div className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-[#22C55E]" /><span>انتشار الجيش اللبناني</span></div>
             <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#38BDF8]" /><span>حادث سير</span></div>
             <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#DC2626]" /><span>اشتباكات</span></div>
+            <div className="flex items-center gap-2"><span className="w-4 h-4 rounded bg-[#EF4444] border border-dashed border-red-300" /><span>صافرات إنذار</span></div>
           </div>
         </div>
 
