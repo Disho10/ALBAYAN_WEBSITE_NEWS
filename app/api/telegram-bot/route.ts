@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
       color: "#EF4444",
       description: desc,
       lat: area.lat, lng: area.lng,
-      radius: 1500,
+      radius: 3000,
       expires_at: new Date(Date.now() + 60 * 60000).toISOString(),
       status: "active",
       is_urgent: true,

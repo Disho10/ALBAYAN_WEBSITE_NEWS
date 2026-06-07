@@ -377,19 +377,23 @@ export default function Home() {
       }
 
       // Siren alerts — highlight Israeli city areas in red
-      if (isSiren && map.getSource("israel-areas")) {
+      if (isSiren) {
+        const sirenSourceId = `siren-src-${alert.id}`;
         const sirenFillId = `siren-fill-${alert.id}`;
         const sirenLineId = `siren-line-${alert.id}`;
+        const circleData = createCircleGeoJSON(alert.lng, alert.lat, alert.radius || 2000);
 
-        map.addLayer({ id: sirenFillId, type: "fill", source: "israel-areas", paint: { "fill-color": "#EF4444", "fill-opacity": 0.5 }, filter: ["==", ["get", "name"], alert.area] });
-        map.addLayer({ id: sirenLineId, type: "line", source: "israel-areas", paint: { "line-color": "#FF0000", "line-width": 2, "line-dasharray": [3, 2] }, filter: ["==", ["get", "name"], alert.area] });
+        map.addSource(sirenSourceId, { type: "geojson", data: circleData as any });
+        activeSourceIdsRef.current.push(sirenSourceId);
+        map.addLayer({ id: sirenFillId, type: "fill", source: sirenSourceId, paint: { "fill-color": "#EF4444", "fill-opacity": 0.35 } });
+        map.addLayer({ id: sirenLineId, type: "line", source: sirenSourceId, paint: { "line-color": "#FF0000", "line-width": 2, "line-dasharray": [3, 2] } });
 
         // Add marker with rocket or drone icon
         const el = document.createElement("div");
         el.className = "siren-marker";
         const isDrone = alert.type === "siren_drone";
         el.innerHTML = isDrone
-          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 12h4l-2 6h4l-1 4 11-12h-4l2-6h-4V2z" opacity="0"/><polygon points="12,3 4,14 8,14 8,12 12,8 16,12 16,14 20,14" fill="white"/><rect x="11" y="14" width="2" height="7" fill="white" rx="1"/><polygon points="7,16 12,21 17,16" fill="white"/></svg>'
+          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="12,3 4,14 8,14 8,12 12,8 16,12 16,14 20,14" fill="white"/><rect x="11" y="14" width="2" height="7" fill="white" rx="1"/><polygon points="7,16 12,21 17,16" fill="white"/></svg>'
           : '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2c-.5 0-1 .2-1.3.6L8 7v3L5 13v2h4l-1 5.5c-.1.8.6 1.5 1.4 1.5h5.2c.8 0 1.5-.7 1.4-1.5L15 15h4v-2l-3-3V7l-2.7-4.4C13 2.2 12.5 2 12 2z"/></svg>';
 
         el.addEventListener("click", (event) => {
