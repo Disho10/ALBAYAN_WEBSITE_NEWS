@@ -398,9 +398,9 @@ export default function Home() {
         {/* Map */}
         <div ref={mapRef} className="h-full w-full" />
 
-        {/* Locate button - right side above zoom controls */}
-        <button onClick={locateUser} className="absolute bottom-32 right-3 z-20 w-9 h-9 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-lg flex items-center justify-center transition" title="موقعي">
-          <LocateFixed size={16} className="text-[#5BA4E6]" />
+        {/* Locate button - below events panel */}
+        <button onClick={locateUser} className="absolute bottom-4 left-4 z-20 w-12 h-12 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-xl flex items-center justify-center transition" title="موقعي">
+          <LocateFixed size={22} className="text-[#5BA4E6]" />
         </button>
 
         {/* Legend - large desktop only */}
