@@ -17972,7 +17972,7 @@ export const areas: Area[] = [
     "pcode": "LBN63009"
   },
   {
-    "name": "عين بعال",
+    "name": "عين بعل",
     "nameAr": "عين بعال",
     "nameEn": "Ain Baal",
     "lat": 33.233475,
