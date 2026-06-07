@@ -211,7 +211,7 @@ export default function Home() {
 
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}`,
+      style: `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}`,
       center: [35.22, 33.27], zoom: 11, minZoom: 6, maxZoom: 15,
     });
     mapInstance.current = map;
