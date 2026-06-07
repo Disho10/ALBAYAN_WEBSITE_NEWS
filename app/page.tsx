@@ -398,13 +398,13 @@ export default function Home() {
         {/* Map */}
         <div ref={mapRef} className="h-full w-full" />
 
-        {/* Locate button - above map controls */}
-        <button onClick={locateUser} className="absolute bottom-28 right-4 z-20 w-10 h-10 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-lg flex items-center justify-center transition" title="موقعي">
-          <LocateFixed size={18} className="text-[#5BA4E6]" />
+        {/* Locate button - right side above zoom controls */}
+        <button onClick={locateUser} className="absolute bottom-32 right-3 z-20 w-9 h-9 bg-[#111D2E]/95 backdrop-blur-md hover:bg-[#1B2D45] border border-[#243447] rounded-lg flex items-center justify-center transition" title="موقعي">
+          <LocateFixed size={16} className="text-[#5BA4E6]" />
         </button>
 
-        {/* Legend - desktop only, bottom right above controls */}
-        <div className="absolute bottom-40 right-4 z-20 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md p-3 hidden lg:block">
+        {/* Legend - large desktop only */}
+        <div className="absolute bottom-44 right-3 z-20 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md p-3 hidden xl:block">
           <h3 className="font-bold text-xs mb-2 text-[#8B9BB4]">مفتاح الخريطة</h3>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#EF4444]" /><span>غارة / قصف</span></div>
