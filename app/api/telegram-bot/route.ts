@@ -135,6 +135,35 @@ const AREA_MAPPING: Record<string, { name: string; lat: number; lng: number }> =
   // === Golan ===
   "الجولان": { name: "الجولان", lat: 33.0, lng: 35.75 },
   "الجليل الأعلى": { name: "الجليل الأعلى", lat: 33.05, lng: 35.5 },
+  // === Tzofar regions (fallback coords) ===
+  "مناشيه": { name: "الخضيرة", lat: 32.4341, lng: 34.9196 },
+  "واديعارة": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
+  "شارون": { name: "نتانيا", lat: 32.3215, lng: 34.8532 },
+  "الكرمل": { name: "حيفا", lat: 32.794, lng: 34.9896 },
+  "همفراتس": { name: "حيفا", lat: 32.81, lng: 35.04 },
+  "مركز الجليل": { name: "كرميئيل", lat: 32.9136, lng: 35.3061 },
+  "الجولان الجنوبي": { name: "كتسرين", lat: 32.9925, lng: 35.6917 },
+  "غوش دان": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
+  "النقب الغربي": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
+  "لخيش": { name: "كريات جات", lat: 31.6089, lng: 34.7583 },
+  "يهودا": { name: "القدس", lat: 31.7683, lng: 35.2137 },
+  "شفيلا": { name: "بيت شيمش", lat: 31.7466, lng: 34.9886 },
+  "المثلث الشمالي": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
+  // === Common Tzofar sub-area names ===
+  "أور عكيفا": { name: "الخضيرة", lat: 32.5067, lng: 34.92 },
+  "بنيامينا": { name: "الخضيرة", lat: 32.5217, lng: 34.9453 },
+  "جسر الزرقاء": { name: "الخضيرة", lat: 32.5339, lng: 34.9061 },
+  "برديس حنا": { name: "الخضيرة", lat: 32.4728, lng: 34.9639 },
+  "كابول": { name: "كابول", lat: 32.8703, lng: 35.2106 },
+  "شعب": { name: "شفاعمرو", lat: 32.82, lng: 35.23 },
+  "طيرات كرمل": { name: "طيرة الكرمل", lat: 32.76, lng: 34.97 },
+  "دالية الكرمل": { name: "حيفا", lat: 32.695, lng: 35.04 },
+  "يوكنعام عيليت": { name: "يوكنعام", lat: 32.6594, lng: 35.1083 },
+  "يوكنعام هموشافه": { name: "يوكنعام", lat: 32.6594, lng: 35.1083 },
+  "حريش": { name: "أم الفحم", lat: 32.46, lng: 35.05 },
+  "كفر قرع": { name: "أم الفحم", lat: 32.488, lng: 35.1 },
+  "عرعرة": { name: "أم الفحم", lat: 32.498, lng: 35.092 },
+  "معاوية": { name: "أم الفحم", lat: 32.49, lng: 35.12 },
   // === Hebrew names (fallback) ===
   "קריית שמונה": { name: "كريات شمونة", lat: 33.2073, lng: 35.5713 },
   "מטולה": { name: "المطلة", lat: 33.2778, lng: 35.5731 },
@@ -153,9 +182,9 @@ const FALLBACK = { name: "شمال فلسطين المحتلة", lat: 33.05, lng
 // === Alert type detection ===
 // Arabic Tzofar format: 🔴 اللون الأحمر ... خط المواجهة / اختراق مسيرات
 // Hebrew format: צבע אדום / חדירת כלי טיס
-const IS_ALERT = [/اللون الأحمر/i, /انذار احمر/i, /צבע אדום/i, /red alert/i, /🔴/, /تسلل طائرة/i, /طائرة بدون طيار/i, /✈️/, /خطالمواجهة/i, /خط المواجهة/i];
+const IS_ALERT = [/اللون الأحمر/i, /انذار احمر/i, /צבע אדום/i, /red alert/i, /🔴/];
 const IS_END = [/انتهى الحدث/i, /لقد انتهى/i];
-const IS_DRONE = [/مسيّر/i, /مسير/i, /طائر/i, /بدون طيار/i, /تسلل طائرة/i, /כלי טיס/i, /drone/i, /uav/i, /✈️/];
+const IS_DRONE = [/مسيّر/i, /مسير/i, /طائر/i, /כלי טיס/i, /drone/i, /uav/i];
 
 function isAlert(text: string): boolean {
   return IS_ALERT.some((p) => p.test(text));
@@ -172,41 +201,51 @@ function isDroneAlert(text: string): boolean {
 function extractAreas(text: string): string[] {
   const areas: string[] = [];
 
-  // Arabic Tzofar format: "• خطالمواجهة: راموت نافتالي, يفتاح (15 ثانية)"
-  // Drone format: "✈️ تسلل طائرة بدون طيار ... • خطالمواجهة: تل ابيب"
-  // End format: "لقد انتهى الحدث في يفتاح, راموت نافتالي"
-  const patterns = [
-    /خطالمواجهة\s*:\s*([^(\[]+)/i,
-    /خط\s+المواجهة\s*:\s*([^(\[]+)/i,
-    /اختراق[^:]*:\s*([^(\[]+)/i,
-    /الحدث في\s+([^(\[]+)/i,
-    /بدون طيار[^:]*:\s*([^(\[]+)/i,
-    /تسلل[^:]*:\s*([^(\[]+)/i,
-  ];
+  // Handle end messages
+  const endMatch = text.match(/الحدث في\s+([^(\[]+)/i);
+  if (endMatch) {
+    return endMatch[1].split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1);
+  }
 
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const raw = match[1].trim();
-      const parts = raw.split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1);
-      if (parts.length > 0) {
-        areas.push(...parts);
-        break;
+  // Handle complex Tzofar format with bullet points (•):
+  // • مناشيه: الخضيرة - شرق, أور عكيفا, قيساريا (دقيقة ونصف)
+  // • واديعارة: ام الفحم, عرعرة (دقيقة ونصف)
+  const bulletSections = text.split("•").filter((s) => s.trim().length > 3);
+
+  if (bulletSections.length > 1) {
+    for (const section of bulletSections) {
+      const colonMatch = section.match(/[^:]*:\s*([^]*)/);
+      if (colonMatch) {
+        let areasPart = colonMatch[1];
+        // Remove time refs
+        areasPart = areasPart.replace(/\([^)]*(?:ثانية|ثواني|دقيقة|دقائق|ونصف)[^)]*\)/g, "");
+        areasPart = areasPart.replace(/\d{1,2}:\d{2}:/g, "");
+        const parts = areasPart.split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1);
+        for (const part of parts) {
+          let clean = part.replace(/\s*-\s*(شرق|غرب|مركز|شمال|جنوب|نافيه\s*\S*|مفراتس|نيفيه\s*\S*)$/i, "").replace(/\[.*?\]/g, "").trim();
+          if (clean.length > 1) areas.push(clean);
+        }
       }
+    }
+  }
+
+  // Simple format: خطالمواجهة: area1, area2
+  if (areas.length === 0) {
+    const simple = [/خطالمواجهة\s*:\s*([^(\[]+)/i, /خط\s+المواجهة\s*:\s*([^(\[]+)/i, /تسلل[^:]*:\s*([^(\[]+)/i];
+    for (const p of simple) {
+      const m = text.match(p);
+      if (m) { areas.push(...m[1].replace(/\([^)]*\)/g, "").split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1)); break; }
     }
   }
 
   // Fallback: scan for known names
   if (areas.length === 0) {
     for (const name of Object.keys(AREA_MAPPING)) {
-      if (text.includes(name)) areas.push(name);
+      if (name.length > 3 && text.includes(name)) areas.push(name);
     }
   }
 
-  // Clean up: remove time references like (15 ثانية), brackets, emojis
-  return areas
-    .map((a) => a.replace(/\(\d+\s*ثانية\)/g, "").replace(/[\[\]🔴⚠️🚨]/g, "").trim())
-    .filter((a) => a.length > 1);
+  return areas.map((a) => a.replace(/[\[\]🔴⚠️🚨✈️]/g, "").trim()).filter((a) => a.length > 1);
 }
 
 function findArea(name: string): { name: string; lat: number; lng: number } {
