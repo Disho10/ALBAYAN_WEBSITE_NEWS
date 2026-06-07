@@ -338,7 +338,7 @@ export default function Home() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1.5">
           <Link href="/settings" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1B2D45] transition text-[#8B9BB4] hover:text-white"><Settings size={16} /></Link>
-          <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold hover:bg-[#1B2D45] transition text-[#8B9BB4] hover:text-white">تلغرام</a>
+          <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold bg-[#1B3A5C] text-[#5BA4E6] hover:bg-[#1B3A5C]/80 transition">تلغرام</a>
           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 transition">واتساب</a>
           <Link href="/donate" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold bg-[#E53935]/10 text-[#E53935] hover:bg-[#E53935]/20 transition">ادعمنا</Link>
           <Link href="/report" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold bg-white/5 text-white hover:bg-white/10 transition">بلاغ</Link>
@@ -353,7 +353,7 @@ export default function Home() {
           <div className="absolute top-14 left-0 right-0 bg-[#111D2E] border-b border-[#243447] p-3 flex flex-col gap-1.5 md:hidden z-50">
             <Link href="/report" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold bg-white/5 hover:bg-white/10 transition">بلاغ</Link>
             <Link href="/donate" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold bg-[#E53935]/10 text-[#E53935] hover:bg-[#E53935]/20 transition">ادعمنا</Link>
-            <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2.5 text-center text-sm font-bold hover:bg-[#1B2D45] transition">تلغرام</a>
+            <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2.5 text-center text-sm font-bold bg-[#1B3A5C] text-[#5BA4E6] hover:bg-[#1B3A5C]/80 transition">تلغرام</a>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2.5 text-center text-sm font-bold bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 transition">واتساب</a>
             <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold hover:bg-[#1B2D45] transition">الإعدادات</Link>
           </div>
@@ -416,75 +416,44 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sidebar toggle button */}
-        <button onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`absolute right-4 z-20 hidden md:flex items-center gap-2 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md px-3 py-2 text-xs transition hover:bg-[#1B2D45] ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16" : "top-3"}`}>
-          <span className="text-[#94A3B8]">{sidebarOpen ? "إخفاء" : "الأحداث"}</span>
-          <span className="bg-[#E53935] text-white text-[10px] px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{visibleAlerts.length}</span>
-        </button>
-
-        {/* Desktop sidebar */}
-        {sidebarOpen && (
-        <aside className={`absolute right-4 z-10 w-72 overflow-y-auto rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md hidden md:block ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-[72px] max-h-[calc(100vh-160px)]" : "top-12 max-h-[calc(100vh-90px)]"}`}>
-          <div className="p-3 border-b border-[#243447]">
-            <h2 className="text-sm font-bold">الأحداث المباشرة</h2>
-            <p className="text-[10px] text-[#5A6B80] mt-0.5">{visibleAlerts.length} حدث نشط</p>
-          </div>
-          <div className="p-2 space-y-1.5">
-            {visibleAlerts.length === 0 ? (
-              <p className="text-xs text-[#5A6B80] text-center py-8">لا توجد أحداث حالياً</p>
-            ) : visibleAlerts.map((alert) => {
-              const color = TYPE_COLORS[alert.type] || "#5BA4E6";
-              return (
-                <button key={alert.id} onClick={() => openAlert(alert)}
-                  className="w-full text-right rounded-lg bg-[#162236] hover:bg-[#1B2D45] p-3 border border-[#243447] transition relative overflow-hidden">
-                  <div className="absolute right-0 top-0 bottom-0 w-1 rounded-r-lg" style={{ backgroundColor: color }} />
-                  <div className="pr-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold">{cleanLabel(alert.type_label)}</span>
-                      <span className="text-[10px] text-[#5A6B80]">{getTimeAgo(alert.created_at)}</span>
-                    </div>
-                    <div className="text-sm font-bold mt-1">{alert.area}</div>
-                    {alert.description && <div className="text-[11px] text-[#8B9BB4] mt-1 line-clamp-1">{alert.description}</div>}
-                    <div className="text-[10px] text-[#F59E0B] mt-1.5 font-bold">ينتهي بعد: {getRemainingTime(alert.expires_at)}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-        )}
-
-        {/* Mobile bottom sheet */}
-        <div className={`md:hidden absolute bottom-0 left-0 right-0 z-20 bg-[#111D2E] border-t border-[#243447] rounded-t-2xl bottom-sheet ${mobileSheetOpen ? "translate-y-0" : "translate-y-[calc(100%-48px)]"}`} style={{ maxHeight: "60vh" }}>
-          <button onClick={() => setMobileSheetOpen(!mobileSheetOpen)} className="w-full flex items-center justify-center py-2 gap-2">
-            <div className="w-8 h-1 bg-[#243447] rounded-full" />
+        {/* Events panel - works on both desktop and mobile */}
+        <div className={`absolute right-4 z-10 ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16" : "top-3"}`}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`flex items-center gap-2 border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md px-3 py-2 text-xs transition hover:bg-[#1B2D45] ${sidebarOpen ? "rounded-t-lg border-b-0 w-64 md:w-72" : "rounded-lg"}`}>
+            <span className="bg-[#E53935] text-white text-[10px] px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{visibleAlerts.length}</span>
+            <span className="flex-1 text-right">{sidebarOpen ? "الأحداث المباشرة" : "الأحداث"}</span>
+            {sidebarOpen ? <ChevronUp size={14} className="text-[#64748B]" /> : <ChevronDown size={14} className="text-[#64748B]" />}
           </button>
-          <div className="flex items-center justify-between px-4 pb-2">
-            <span className="text-sm font-bold">{visibleAlerts.length} حدث نشط</span>
-            {mobileSheetOpen ? <ChevronDown size={16} className="text-[#5A6B80]" /> : <ChevronUp size={16} className="text-[#5A6B80]" />}
-          </div>
-          {mobileSheetOpen && (
-            <div className="px-3 pb-4 space-y-1.5 overflow-y-auto" style={{ maxHeight: "calc(60vh - 80px)" }}>
-              {visibleAlerts.map((alert) => {
-                const color = TYPE_COLORS[alert.type] || "#5BA4E6";
-                return (
-                  <button key={alert.id} onClick={() => openAlert(alert)}
-                    className="w-full text-right rounded-lg bg-[#162236] p-3 border border-[#243447] relative overflow-hidden">
-                    <div className="absolute right-0 top-0 bottom-0 w-1 rounded-r-lg" style={{ backgroundColor: color }} />
-                    <div className="pr-3 flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold">{cleanLabel(alert.type_label)}</span>
-                        <span className="text-sm font-bold block mt-0.5">{alert.area}</span>
+
+          {sidebarOpen && (
+            <div className="w-64 md:w-72 max-h-[50vh] md:max-h-[calc(100vh-160px)] overflow-y-auto rounded-b-lg border border-[#243447] border-t-0 bg-[#111D2E]/95 backdrop-blur-md">
+              <div className="p-2 space-y-1.5">
+                {visibleAlerts.length === 0 ? (
+                  <p className="text-xs text-[#64748B] text-center py-8">لا توجد أحداث حالياً</p>
+                ) : visibleAlerts.map((alert) => {
+                  const color = TYPE_COLORS[alert.type] || "#5BA4E6";
+                  return (
+                    <button key={alert.id} onClick={() => openAlert(alert)}
+                      className="w-full text-right rounded-lg bg-[#162236] hover:bg-[#1B2D45] p-3 border border-[#243447] transition relative overflow-hidden">
+                      <div className="absolute right-0 top-0 bottom-0 w-1 rounded-r-lg" style={{ backgroundColor: color }} />
+                      <div className="pr-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs">{cleanLabel(alert.type_label)}</span>
+                          <span className="text-[10px] text-[#64748B]">{getTimeAgo(alert.created_at)}</span>
+                        </div>
+                        <div className="text-sm mt-1">{alert.area}</div>
+                        {alert.description && <div className="text-[11px] text-[#94A3B8] mt-1 line-clamp-1">{alert.description}</div>}
+                        <div className="text-[10px] text-[#F59E0B] mt-1.5">ينتهي بعد: {getRemainingTime(alert.expires_at)}</div>
                       </div>
-                      <span className="text-[10px] text-[#5A6B80]">{getTimeAgo(alert.created_at)}</span>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
+
+
       </div>
     </main>
   );

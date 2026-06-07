@@ -40,5 +40,5 @@ export const ALERT_TYPES = [
 ];
 
 export const TELEGRAM_CHANNEL_URL = "https://t.me/AlBayan_Newss";
-export const WHATSAPP_URL = "https://wa.me/96176096674";
+export const WHATSAPP_URL = "https://whatsapp.com/channel/0029VbApl8OBlHpfDzyrrT0f";
 export const TELEGRAM_BOT_URL = "https://t.me/AlBayanReporterBot";
