@@ -17965,8 +17965,8 @@ export const areas: Area[] = [
     "name": "حوش",
     "nameAr": "حوش",
     "nameEn": "hosh",
-    "lat": 33.233475,
-    "lng": 35.26925,
+    "lat": 33.243426,
+    "lng":35.238476,
     "district": "صور",
     "governorate": "الجنوب",
     "pcode": "LBN63009"
