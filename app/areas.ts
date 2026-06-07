@@ -17961,9 +17961,19 @@ export const areas: Area[] = [
     "governorate": "الجنوب",
     "pcode": "LBN62005"
   },
+{
+    "name": "حوش",
+    "nameAr": "حوش",
+    "nameEn": "hosh",
+    "lat": 33.233475,
+    "lng": 35.26925,
+    "district": "صور",
+    "governorate": "الجنوب",
+    "pcode": "LBN63009"
+  },
   {
-    "name": "عين بعل",
-    "nameAr": "عين بعل",
+    "name": "عين بعال",
+    "nameAr": "عين بعال",
     "nameEn": "Ain Baal",
     "lat": 33.233475,
     "lng": 35.26925,
