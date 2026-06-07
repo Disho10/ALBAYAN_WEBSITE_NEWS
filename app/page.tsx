@@ -73,6 +73,7 @@ function getRemainingTime(expiresAt?: string | null) {
 function matchesFilter(alert: AlertItem, filter: string) {
   if (filter === "all") return true;
   if (filter === "strikes") return alert.type === "strike" || alert.type === "artillery";
+  if (filter === "siren") return alert.type === "siren" || alert.type === "siren_missile" || alert.type === "siren_drone";
   return alert.type === filter;
 }
 
@@ -285,7 +286,7 @@ export default function Home() {
       style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${maptilerKey}`,
       center: [35.22, 33.27],
       zoom: 11,
-      minZoom: 8,
+      minZoom: 6,
       maxZoom: 15,
     });
 
@@ -350,7 +351,7 @@ export default function Home() {
     visibleAlerts.forEach((alert) => {
       const isStrike = alert.type === "strike" || alert.type === "artillery";
       const isAreaHighlight = alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position";
-      const isSiren = alert.type === "siren";
+      const isSiren = alert.type === "siren" || alert.type === "siren_missile" || alert.type === "siren_drone";
 
       if (isStrike) {
         const sameAreaAlerts = visibleAlerts.filter((a) => (a.type === "strike" || a.type === "artillery") && a.area === alert.area);
@@ -382,6 +383,22 @@ export default function Home() {
 
         map.addLayer({ id: sirenFillId, type: "fill", source: "israel-areas", paint: { "fill-color": "#EF4444", "fill-opacity": 0.5 }, filter: ["==", ["get", "name"], alert.area] });
         map.addLayer({ id: sirenLineId, type: "line", source: "israel-areas", paint: { "line-color": "#FF0000", "line-width": 2, "line-dasharray": [3, 2] }, filter: ["==", ["get", "name"], alert.area] });
+
+        // Add marker with rocket or drone icon
+        const el = document.createElement("div");
+        el.className = "siren-marker";
+        const isDrone = alert.type === "siren_drone";
+        el.innerHTML = isDrone
+          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 12h4l-2 6h4l-1 4 11-12h-4l2-6h-4V2z" opacity="0"/><polygon points="12,3 4,14 8,14 8,12 12,8 16,12 16,14 20,14" fill="white"/><rect x="11" y="14" width="2" height="7" fill="white" rx="1"/><polygon points="7,16 12,21 17,16" fill="white"/></svg>'
+          : '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2c-.5 0-1 .2-1.3.6L8 7v3L5 13v2h4l-1 5.5c-.1.8.6 1.5 1.4 1.5h5.2c.8 0 1.5-.7 1.4-1.5L15 15h4v-2l-3-3V7l-2.7-4.4C13 2.2 12.5 2 12 2z"/></svg>';
+
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          showAlertPopup(alert, [alert.lng, alert.lat]);
+        });
+
+        const marker = new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map);
+        strikeMarkersRef.current.push(marker);
 
         const clickHandler = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
         const mouseEnterHandler = () => { map.getCanvas().style.cursor = "pointer"; };
