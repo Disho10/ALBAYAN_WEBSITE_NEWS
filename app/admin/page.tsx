@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem, Area } from "@/app/lib/types";
 import { ALERT_TYPES } from "@/app/lib/types";
+import { areas } from "@/app/areas";
 import Footer from "@/app/components/Footer";
 
 function getRemainingTime(expiresAt?: string | null) {
@@ -29,7 +30,7 @@ const DURATION_OPTIONS = [
 ];
 
 export default function AdminPage() {
-  const [allAreas, setAllAreas] = useState<Area[]>([]);
+  const [allAreas] = useState<Area[]>(areas);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [type, setType] = useState("strike");
   const [areaSearch, setAreaSearch] = useState("");
@@ -73,14 +74,6 @@ export default function AdminPage() {
       )
       .slice(0, 50);
   }, [areaSearch, selectedAreas, allAreas]);
-
-  // Load areas from static JSON
-  useEffect(() => {
-    fetch("/data/areas.json")
-      .then((res) => res.json())
-      .then((data) => setAllAreas(data))
-      .catch((err) => console.error("Failed to load areas:", err));
-  }, []);
 
   function addArea(area: Area) {
     if (!selectedAreas.find((a) => a.pcode === area.pcode)) {
