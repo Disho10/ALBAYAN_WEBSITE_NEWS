@@ -316,14 +316,12 @@ export default function Home() {
       } catch (err) {
         console.error("Israeli GeoJSON load error:", err);
       }
-      // Set map ready — use idle event or fallback
-      if (map.isStyleLoaded() && map.loaded()) {
+      // Set map ready with reliable fallback
+      const readyTimeout = setTimeout(() => setMapReady(true), 2000);
+      map.once("idle", () => {
+        clearTimeout(readyTimeout);
         setMapReady(true);
-      } else {
-        map.once("idle", () => {
-          setMapReady(true);
-        });
-      }
+      });
     });
 
     map.on("error", (e) => console.error("Map error:", e));
