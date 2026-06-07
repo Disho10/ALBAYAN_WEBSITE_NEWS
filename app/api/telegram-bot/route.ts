@@ -306,8 +306,8 @@ export async function POST(req: NextRequest) {
     const typeLabel = isMissile ? "🚀 صواريخ" : "✈️ مسيّرات معادية";
     const shelterNote = shelterTime ? ` وقت الاحتماء: ${shelterTime}.` : "";
     const desc = isMissile
-      ? `إطلاق صواريخ باتجاه ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote} يرجى أخذ الحيطة والحذر.`
-      : `اختراق طائرات مسيّرة معادية أجواء ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote} يرجى أخذ الحيطة والحذر.`;
+      ? `إطلاق صواريخ باتجاه ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote}.`
+      : `اختراق طائرات مسيّرة معادية أجواء ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote}.`;
 
     const rows = alertAreas.map((area) => ({
       title: typeLabel,
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
       description: desc,
       lat: area.lat, lng: area.lng,
       radius: 3000,
-      expires_at: new Date(Date.now() + 60 * 60000).toISOString(),
+      expires_at: new Date(Date.now() + 10 * 60000).toISOString(),
       status: "active",
       is_urgent: true,
     }));
