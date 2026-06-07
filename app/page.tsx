@@ -286,27 +286,10 @@ export default function Home() {
         const color = alert.type === "threat" ? "#F59E0B" : alert.type === "enemy_position" ? "#A855F7" : "#22C55E";
         map.addLayer({ id: fId, type: "fill", source: "admin3", paint: { "fill-color": color, "fill-opacity": 0.4 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
         map.addLayer({ id: lId, type: "line", source: "admin3", paint: { "line-color": color, "line-width": 2.5 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
-
-        // Check if any feature matched — if not, fall back to circle
-        const matched = map.queryRenderedFeatures({ layers: [fId] });
-        if (matched.length === 0) {
-          map.removeLayer(fId); map.removeLayer(lId);
-          activeLayerIdsRef.current = activeLayerIdsRef.current.filter((id) => id !== fId && id !== lId);
-          const srcId = `fallback-src-${alert.id}`, fbFill = `fallback-fill-${alert.id}`, fbLine = `fallback-line-${alert.id}`;
-          const circle = createCircleGeoJSON(alert.lng, alert.lat, alert.radius || 800);
-          map.addSource(srcId, { type: "geojson", data: circle as any }); activeSourceIdsRef.current.push(srcId);
-          map.addLayer({ id: fbFill, type: "fill", source: srcId, paint: { "fill-color": color, "fill-opacity": 0.35 } });
-          map.addLayer({ id: fbLine, type: "line", source: srcId, paint: { "line-color": color, "line-width": 2 } });
-          activeLayerIdsRef.current.push(fbFill, fbLine);
-          const ch = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
-          map.on("click", fbFill, ch);
-          cleanupHandlersRef.current.push(() => { map.off("click", fbFill, ch); });
-        } else {
-          const ch = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
-          const me = () => { map.getCanvas().style.cursor = "pointer"; }; const ml = () => { map.getCanvas().style.cursor = ""; };
-          map.on("click", fId, ch); map.on("mouseenter", fId, me); map.on("mouseleave", fId, ml);
-          cleanupHandlersRef.current.push(() => { map.off("click", fId, ch); map.off("mouseenter", fId, me); map.off("mouseleave", fId, ml); });
-        }
+        const ch = (e: maplibregl.MapLayerMouseEvent) => showAlertPopup(alert, e.lngLat);
+        const me = () => { map.getCanvas().style.cursor = "pointer"; }; const ml = () => { map.getCanvas().style.cursor = ""; };
+        map.on("click", fId, ch); map.on("mouseenter", fId, me); map.on("mouseleave", fId, ml);
+        cleanupHandlersRef.current.push(() => { map.off("click", fId, ch); map.off("mouseenter", fId, me); map.off("mouseleave", fId, ml); });
         activeLayerIdsRef.current.push(fId, lId);
         return;
       }
