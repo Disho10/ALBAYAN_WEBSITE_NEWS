@@ -70,24 +70,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#00152D] text-white p-6" dir="rtl">
+    <main className="min-h-screen bg-[#0D1B2A] text-white p-6" dir="rtl">
       <section className="max-w-6xl mx-auto">
-        <Link href="/" className="text-[#3B82F6] font-bold hover:text-white transition">
+        <Link href="/" className="text-[#E53935] font-bold hover:text-white transition">
           العودة للخريطة
         </Link>
 
         <div className="mt-10 mb-10 text-center">
-          <p className="text-red-400 font-bold mb-3 tracking-widest">— الإعدادات</p>
+          <p className="text-[#E53935] font-bold mb-3">— الإعدادات</p>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">إعدادات الخريطة</h1>
-          <p className="text-slate-300 leading-8 max-w-3xl mx-auto">
+          <p className="text-[#94A3B8] leading-8 max-w-3xl mx-auto">
             خصّص تجربة استخدام AlBayan Alert Map، واختر طريقة عرض التنبيهات والمناطق المهمة.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-red-400 font-bold mb-4 tracking-widest">حالة النظام</p>
+            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#E53935] font-bold mb-4 tracking-widest">حالة النظام</p>
               <div className="space-y-5">
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="font-bold flex items-center gap-2">
@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="font-bold">تغطية لبنان</h3>
-                  <p className="text-slate-400 text-sm mt-2 leading-7">تغطية ميدانية حسب المناطق المتوفرة في الخريطة.</p>
+                  <p className="text-[#94A3B8] text-sm mt-2 leading-7">تغطية ميدانية حسب المناطق المتوفرة في الخريطة.</p>
                 </div>
                 <div>
                   <h3 className="font-bold">AlBayan Alert Map v1.0</h3>
@@ -105,36 +105,36 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A3563] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-slate-400 text-xs font-bold tracking-widest mb-3">روابط سريعة</p>
+            <div className="bg-[#1B2D45] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#94A3B8] text-xs font-bold tracking-widest mb-3">روابط سريعة</p>
               <div className="space-y-3">
-                <Link href="/faq" className="block bg-[#021B3A] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">الأسئلة الشائعة</Link>
-                <Link href="/privacy" className="block bg-[#021B3A] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">سياسة الخصوصية</Link>
-                <Link href="/terms" className="block bg-[#021B3A] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">الشروط والأحكام</Link>
+                <Link href="/faq" className="block bg-[#111D2E] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">الأسئلة الشائعة</Link>
+                <Link href="/privacy" className="block bg-[#111D2E] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">سياسة الخصوصية</Link>
+                <Link href="/terms" className="block bg-[#111D2E] hover:bg-[#134B78] transition rounded-xl px-4 py-3 font-bold">الشروط والأحكام</Link>
               </div>
             </div>
           </aside>
 
-          <div className="lg:col-span-2 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(59,130,246,0.12)]">
+          <div className="lg:col-span-2 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 md:p-8 shadow-lg">
             <div className="text-center mb-8">
-              <p className="text-[#3B82F6] font-bold mb-3 tracking-widest">تفضيلات المستخدم</p>
+              <p className="text-[#E53935] font-bold mb-3 tracking-widest">تفضيلات المستخدم</p>
               <h2 className="text-3xl md:text-4xl font-bold mb-4">تخصيص تجربة الخريطة</h2>
             </div>
 
             <div className="space-y-6">
-              <div className="bg-[#001F3F] border border-[#134B78] rounded-2xl p-5">
+              <div className="bg-[#162236] border border-[#243447] rounded-2xl p-5">
                 <h3 className="text-xl font-bold mb-4">المنطقة المفضلة</h3>
-                <select value={settings.selectedArea} onChange={(e) => updateSetting("selectedArea", e.target.value)} className="w-full bg-[#021B3A] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                <select value={settings.selectedArea} onChange={(e) => updateSetting("selectedArea", e.target.value)} className="w-full bg-[#111D2E] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
                   <option>صور</option><option>برج الشمالي</option><option>النبطية</option>
                   <option>بنت جبيل</option><option>الخيام</option><option>كفركلا</option>
                 </select>
               </div>
 
-              <div className="bg-[#001F3F] border border-[#134B78] rounded-2xl p-5">
+              <div className="bg-[#162236] border border-[#243447] rounded-2xl p-5">
                 <h3 className="text-xl font-bold mb-4">أنواع التنبيهات</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {alertTypeOptions.map((item) => (
-                    <label key={item} className="flex items-center gap-3 bg-[#021B3A] border border-white/10 rounded-xl p-4 cursor-pointer hover:border-[#3B82F6] transition">
+                    <label key={item} className="flex items-center gap-3 bg-[#111D2E] border border-white/10 rounded-xl p-4 cursor-pointer hover:border-[#3B82F6] transition">
                       <input type="checkbox" checked={settings.enabledAlertTypes.includes(item)} onChange={() => toggleAlertType(item)} className="w-5 h-5" />
                       <span className="font-bold">{item}</span>
                     </label>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-[#001F3F] border border-[#134B78] rounded-2xl p-5">
+              <div className="bg-[#162236] border border-[#243447] rounded-2xl p-5">
                 <h3 className="text-xl font-bold mb-4">خيارات العرض</h3>
                 <div className="space-y-3">
                   <ToggleRow title="إظهار شريط الأخبار العاجلة" text="عرض التنبيه العاجل أعلى الخريطة عند وجود حدث مهم." enabled={settings.urgentBar} setEnabled={(v) => updateSetting("urgentBar", v)} />
@@ -152,10 +152,10 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex flex-col md:flex-row gap-3">
-                <button onClick={handleSave} className={`flex-1 transition rounded-xl px-5 py-4 font-extrabold ${saved ? "bg-green-600 hover:bg-green-700" : "bg-[#3B82F6] hover:bg-[#2563EB]"}`}>
+                <button onClick={handleSave} className={`flex-1 transition rounded-xl px-5 py-4 font-extrabold ${saved ? "bg-green-600 hover:bg-green-700" : "bg-[#E53935] hover:bg-[#C62828]"}`}>
                   {saved ? "✓ تم الحفظ" : "حفظ الإعدادات"}
                 </button>
-                <Link href="/" className="flex-1 text-center bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] transition rounded-xl px-5 py-4 font-extrabold">العودة للخريطة</Link>
+                <Link href="/" className="flex-1 text-center bg-[#1B2D45] hover:bg-[#134B78] border border-[#243447] transition rounded-xl px-5 py-4 font-extrabold">العودة للخريطة</Link>
               </div>
             </div>
           </div>
@@ -168,12 +168,12 @@ export default function SettingsPage() {
 
 function ToggleRow({ title, text, enabled, setEnabled }: { title: string; text: string; enabled: boolean; setEnabled: (value: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-[#021B3A] border border-white/10 rounded-xl p-4">
+    <div className="flex items-center justify-between gap-4 bg-[#111D2E] border border-white/10 rounded-xl p-4">
       <div>
         <h4 className="font-bold mb-1">{title}</h4>
-        <p className="text-slate-400 text-sm leading-6">{text}</p>
+        <p className="text-[#94A3B8] text-sm leading-6">{text}</p>
       </div>
-      <button onClick={() => setEnabled(!enabled)} className={`w-14 h-8 rounded-full p-1 transition flex-shrink-0 ${enabled ? "bg-[#3B82F6]" : "bg-slate-600"}`}>
+      <button onClick={() => setEnabled(!enabled)} className={`w-14 h-8 rounded-full p-1 transition flex-shrink-0 ${enabled ? "bg-[#E53935]" : "bg-slate-600"}`}>
         <div className={`w-6 h-6 bg-white rounded-full transition-transform ${enabled ? "translate-x-0" : "translate-x-6"}`} />
       </button>
     </div>

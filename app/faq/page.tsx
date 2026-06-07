@@ -89,17 +89,17 @@ export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <main className="min-h-screen bg-[#00152D] text-white p-6" dir="rtl">
+    <main className="min-h-screen bg-[#0D1B2A] text-white p-6" dir="rtl">
       <section className="max-w-6xl mx-auto">
         <Link
           href="/"
-          className="inline-flex items-center text-[#3B82F6] font-bold hover:text-white transition"
+          className="inline-flex items-center text-[#E53935] font-bold hover:text-white transition"
         >
           العودة للخريطة
         </Link>
 
         <div className="mt-10 mb-10 text-center">
-          <p className="text-red-400 font-bold mb-3 tracking-widest">
+          <p className="text-[#E53935] font-bold mb-3">
             — HELP CENTER
           </p>
 
@@ -107,7 +107,7 @@ export default function FAQPage() {
             مركز المساعدة والأسئلة الشائعة
           </h1>
 
-          <p className="text-slate-300 leading-8 max-w-3xl mx-auto">
+          <p className="text-[#94A3B8] leading-8 max-w-3xl mx-auto">
             صفحة مخصصة للإجابة على أكثر الأسئلة شيوعًا حول المنصة، وآلية
             نشر التنبيهات، وطريقة إرسال البلاغات، والتعامل مع المعلومات
             الميدانية.
@@ -118,19 +118,19 @@ export default function FAQPage() {
           {quickCards.map((card) => (
             <div
               key={card.title}
-              className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5 text-center hover:border-[#3B82F6] transition"
+              className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5 text-center hover:border-[#3B82F6] transition"
             >
               <div className="text-3xl mb-2">{card.icon}</div>
               <h3 className="font-bold mb-1">{card.title}</h3>
-              <p className="text-slate-400 text-sm">{card.text}</p>
+              <p className="text-[#94A3B8] text-sm">{card.text}</p>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(59,130,246,0.12)]">
+          <div className="lg:col-span-2 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 md:p-8 shadow-lg">
             <div className="text-center mb-8">
-              <p className="text-[#3B82F6] font-bold mb-3 tracking-widest">
+              <p className="text-[#E53935] font-bold mb-3 tracking-widest">
                 FAQ CENTER
               </p>
 
@@ -138,7 +138,7 @@ export default function FAQPage() {
                 كل شيء عليك معرفته
               </h2>
 
-              <p className="text-slate-300 leading-8 max-w-2xl mx-auto">
+              <p className="text-[#94A3B8] leading-8 max-w-2xl mx-auto">
                 جمعنا لك أهم الأسئلة حول مصادر المعلومات، دقة التنبيهات،
                 البلاغات، الخصوصية، والدعم.
               </p>
@@ -153,8 +153,8 @@ export default function FAQPage() {
                     key={item.q}
                     className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
                       isOpen
-                        ? "bg-[#0A3563] border-[#3B82F6] shadow-[0_0_25px_rgba(59,130,246,0.12)]"
-                        : "bg-[#001F3F] border-[#134B78]"
+                        ? "bg-[#1B2D45] border-[#3B82F6] shadow-[0_0_25px_rgba(59,130,246,0.12)]"
+                        : "bg-[#162236] border-[#243447]"
                     }`}
                   >
                     <button
@@ -168,8 +168,8 @@ export default function FAQPage() {
                       <span
                         className={`min-w-8 h-8 rounded-full flex items-center justify-center text-xl transition ${
                           isOpen
-                            ? "bg-[#3B82F6] text-white"
-                            : "bg-[#0A3563] text-[#3B82F6]"
+                            ? "bg-[#E53935] text-white"
+                            : "bg-[#1B2D45] text-[#E53935]"
                         }`}
                       >
                         {isOpen ? "−" : "+"}
@@ -177,7 +177,7 @@ export default function FAQPage() {
                     </button>
 
                     {isOpen && (
-                      <div className="px-5 pb-5 pt-4 text-slate-300 leading-8 border-t border-white/10">
+                      <div className="px-5 pb-5 pt-4 text-[#94A3B8] leading-8 border-t border-white/10">
                         {item.a}
                       </div>
                     )}
@@ -188,8 +188,8 @@ export default function FAQPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 shadow-[0_0_30px_rgba(59,130,246,0.08)]">
-              <p className="text-red-400 font-bold mb-4 tracking-widest">
+            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6 shadow-[0_0_30px_rgba(59,130,246,0.08)]">
+              <p className="text-[#E53935] font-bold mb-4 tracking-widest">
                 PLATFORM INFO
               </p>
 
@@ -199,7 +199,7 @@ export default function FAQPage() {
                     key={item.label}
                     className="border-b border-white/10 pb-5 last:border-b-0 last:pb-0"
                   >
-                    <p className="text-slate-500 text-xs font-bold tracking-widest mb-2">
+                    <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
                       {item.label}
                     </p>
 
@@ -210,7 +210,7 @@ export default function FAQPage() {
                       {item.title}
                     </h3>
 
-                    <p className="text-slate-400 text-sm leading-7">
+                    <p className="text-[#94A3B8] text-sm leading-7">
                       {item.text}
                     </p>
                   </div>
@@ -218,8 +218,8 @@ export default function FAQPage() {
               </div>
             </div>
 
-            <div className="bg-[#0A3563] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-slate-400 text-xs font-bold tracking-widest mb-2">
+            <div className="bg-[#1B2D45] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#94A3B8] text-xs font-bold tracking-widest mb-2">
                 REPORT
               </p>
 
@@ -227,20 +227,20 @@ export default function FAQPage() {
                 هل لديك معلومة ميدانية؟
               </h3>
 
-              <p className="text-slate-300 leading-7 mb-5">
+              <p className="text-[#94A3B8] leading-7 mb-5">
                 يمكنك إرسال بلاغ أو تصحيح ليتم مراجعته ومتابعته من فريق
                 المنصة.
               </p>
 
               <Link
                 href="/report"
-                className="block text-center bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold"
+                className="block text-center bg-[#E53935] hover:bg-[#C62828] transition rounded-xl px-5 py-3 font-bold"
               >
                 إرسال بلاغ
               </Link>
             </div>
 
-            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-3xl p-6">
+            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6">
               <p className="text-white/80 text-xs font-bold tracking-widest mb-2">
                 SUPPORT
               </p>
@@ -262,8 +262,8 @@ export default function FAQPage() {
               </Link>
             </div>
 
-            <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-slate-500 text-xs font-bold tracking-widest mb-2">
+            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
                 COMMUNITY
               </p>
 
@@ -271,7 +271,7 @@ export default function FAQPage() {
                 تابع التنبيهات أولًا بأول
               </h3>
 
-              <p className="text-slate-400 leading-7 mb-5">
+              <p className="text-[#94A3B8] leading-7 mb-5">
                 انضم إلى قنواتنا الرسمية لمتابعة آخر التحديثات والتنبيهات.
               </p>
 
@@ -280,7 +280,7 @@ export default function FAQPage() {
                   href={TELEGRAM_CHANNEL_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-center border border-[#134B78] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
+                  className="text-center border border-[#243447] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
                 >
                   تلغرام
                 </a>
@@ -289,7 +289,7 @@ export default function FAQPage() {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-center border border-[#134B78] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
+                  className="text-center border border-[#243447] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
                 >
                   واتساب
                 </a>

@@ -144,6 +144,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [, forceUpdate] = useState(0);
 
@@ -415,8 +416,16 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Sidebar toggle button */}
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+          className={`absolute right-4 z-20 hidden md:flex items-center gap-2 rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md px-3 py-2 text-xs transition hover:bg-[#1B2D45] ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16" : "top-3"}`}>
+          <span className="text-[#94A3B8]">{sidebarOpen ? "إخفاء" : "الأحداث"}</span>
+          <span className="bg-[#E53935] text-white text-[10px] px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{visibleAlerts.length}</span>
+        </button>
+
         {/* Desktop sidebar */}
-        <aside className={`absolute right-4 z-10 w-72 overflow-y-auto rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md hidden md:block ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-16 max-h-[calc(100vh-150px)]" : "top-3 max-h-[calc(100vh-80px)]"}`}>
+        {sidebarOpen && (
+        <aside className={`absolute right-4 z-10 w-72 overflow-y-auto rounded-lg border border-[#243447] bg-[#111D2E]/95 backdrop-blur-md hidden md:block ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-[72px] max-h-[calc(100vh-160px)]" : "top-12 max-h-[calc(100vh-90px)]"}`}>
           <div className="p-3 border-b border-[#243447]">
             <h2 className="text-sm font-bold">الأحداث المباشرة</h2>
             <p className="text-[10px] text-[#5A6B80] mt-0.5">{visibleAlerts.length} حدث نشط</p>
@@ -444,6 +453,7 @@ export default function Home() {
             })}
           </div>
         </aside>
+        )}
 
         {/* Mobile bottom sheet */}
         <div className={`md:hidden absolute bottom-0 left-0 right-0 z-20 bg-[#111D2E] border-t border-[#243447] rounded-t-2xl bottom-sheet ${mobileSheetOpen ? "translate-y-0" : "translate-y-[calc(100%-48px)]"}`} style={{ maxHeight: "60vh" }}>

@@ -74,14 +74,14 @@ const termsSections = [
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#00152D] text-white p-6" dir="rtl">
+    <main className="min-h-screen bg-[#0D1B2A] text-white p-6" dir="rtl">
       <section className="max-w-6xl mx-auto">
-        <Link href="/" className="text-[#3B82F6] font-bold hover:text-white transition">
+        <Link href="/" className="text-[#E53935] font-bold hover:text-white transition">
           العودة للخريطة
         </Link>
 
         <div className="mt-10 mb-10 text-center">
-          <p className="text-red-400 font-bold mb-3 tracking-widest">
+          <p className="text-[#E53935] font-bold mb-3">
             — TERMS CENTER
           </p>
 
@@ -89,38 +89,38 @@ export default function TermsPage() {
             الشروط والأحكام
           </h1>
 
-          <p className="text-slate-300 leading-8 max-w-3xl mx-auto">
+          <p className="text-[#94A3B8] leading-8 max-w-3xl mx-auto">
             باستخدامك لمنصة AlBayan Alert Map فإنك توافق على الالتزام بهذه
             الشروط، والتي توضّح قواعد استخدام المنصة، حدود المسؤولية، سياسة
             البلاغات، وحقوق المحتوى والدعم.
           </p>
 
-          <div className="mt-6 inline-block bg-[#021B3A] border border-[#134B78] rounded-xl px-5 py-3 text-slate-300">
+          <div className="mt-6 inline-block bg-[#111D2E] border border-[#243447] rounded-xl px-5 py-3 text-[#94A3B8]">
             آخر تحديث: يونيو 2026
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5 text-center">
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5 text-center">
             <div className="text-3xl mb-2">⚖️</div>
             <h3 className="font-bold mb-1">استخدام مسؤول</h3>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[#94A3B8] text-sm">
               استخدام المنصة يجب أن يكون قانونيًا وغير مسيء.
             </p>
           </div>
 
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5 text-center">
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5 text-center">
             <div className="text-3xl mb-2">🚨</div>
             <h3 className="font-bold mb-1">بلاغات موثوقة</h3>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[#94A3B8] text-sm">
               يمنع إرسال بلاغات مضللة أو غير صحيحة.
             </p>
           </div>
 
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5 text-center">
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5 text-center">
             <div className="text-3xl mb-2">🛡️</div>
             <h3 className="font-bold mb-1">حدود المسؤولية</h3>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[#94A3B8] text-sm">
               التنبيهات لا تغني عن التعليمات الرسمية.
             </p>
           </div>
@@ -128,45 +128,45 @@ export default function TermsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-red-400 font-bold mb-4 tracking-widest">
+            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#E53935] font-bold mb-4 tracking-widest">
                 TERMS INFO
               </p>
 
               <div className="space-y-5">
                 <div className="border-b border-white/10 pb-4">
-                  <p className="text-slate-500 text-xs font-bold tracking-widest mb-2">
+                  <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
                     PLATFORM
                   </p>
                   <h3 className="font-bold">منصة مستقلة</h3>
-                  <p className="text-slate-400 text-sm mt-2 leading-7">
+                  <p className="text-[#94A3B8] text-sm mt-2 leading-7">
                     لا تمثل جهة رسمية أو حكومية إلا إذا ذُكر ذلك صراحة.
                   </p>
                 </div>
 
                 <div className="border-b border-white/10 pb-4">
-                  <p className="text-slate-500 text-xs font-bold tracking-widest mb-2">
+                  <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
                     CONTENT
                   </p>
                   <h3 className="font-bold">المعلومات قابلة للتحديث</h3>
-                  <p className="text-slate-400 text-sm mt-2 leading-7">
+                  <p className="text-[#94A3B8] text-sm mt-2 leading-7">
                     قد يتم تعديل أو حذف التنبيهات عند توفر معلومات جديدة.
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-slate-500 text-xs font-bold tracking-widest mb-2">
+                  <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
                     RESPONSIBILITY
                   </p>
                   <h3 className="font-bold">استخدم المعلومات بحذر</h3>
-                  <p className="text-slate-400 text-sm mt-2 leading-7">
+                  <p className="text-[#94A3B8] text-sm mt-2 leading-7">
                     لا تعتمد على التنبيهات بدلًا من التعليمات الرسمية.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-3xl p-6">
+            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6">
               <p className="text-white/80 text-xs font-bold tracking-widest mb-2">
                 SUPPORT
               </p>
@@ -187,8 +187,8 @@ export default function TermsPage() {
               </Link>
             </div>
 
-            <div className="bg-[#0A3563] border border-[#134B78] rounded-3xl p-6">
-              <p className="text-slate-400 text-xs font-bold tracking-widest mb-2">
+            <div className="bg-[#1B2D45] border border-[#243447] rounded-2xl p-6">
+              <p className="text-[#94A3B8] text-xs font-bold tracking-widest mb-2">
                 REPORT
               </p>
 
@@ -196,22 +196,22 @@ export default function TermsPage() {
                 إرسال بلاغ أو تصحيح
               </h3>
 
-              <p className="text-slate-300 leading-7 mb-5">
+              <p className="text-[#94A3B8] leading-7 mb-5">
                 يمكنك إرسال بلاغ أو ملاحظة ليتم مراجعتها ومتابعتها.
               </p>
 
               <Link
                 href="/report"
-                className="block text-center bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold"
+                className="block text-center bg-[#E53935] hover:bg-[#C62828] transition rounded-xl px-5 py-3 font-bold"
               >
                 إرسال بلاغ
               </Link>
             </div>
           </aside>
 
-          <div className="lg:col-span-2 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(59,130,246,0.12)]">
+          <div className="lg:col-span-2 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 md:p-8 shadow-lg">
             <div className="text-center mb-8">
-              <p className="text-[#3B82F6] font-bold mb-3 tracking-widest">
+              <p className="text-[#E53935] font-bold mb-3 tracking-widest">
                 TERMS DETAILS
               </p>
 
@@ -219,7 +219,7 @@ export default function TermsPage() {
                 قواعد استخدام المنصة
               </h2>
 
-              <p className="text-slate-300 leading-8 max-w-2xl mx-auto">
+              <p className="text-[#94A3B8] leading-8 max-w-2xl mx-auto">
                 البنود التالية توضّح آلية استخدام الموقع، نشر البلاغات،
                 إعادة استخدام المحتوى، وحدود مسؤولية المنصة.
               </p>
@@ -229,10 +229,10 @@ export default function TermsPage() {
               {termsSections.map((section) => (
                 <div
                   key={section.title}
-                  className="bg-[#001F3F] border border-[#134B78] rounded-2xl p-5 hover:border-[#3B82F6] transition"
+                  className="bg-[#162236] border border-[#243447] rounded-2xl p-5 hover:border-[#3B82F6] transition"
                 >
                   <h3 className="text-xl font-bold mb-3">{section.title}</h3>
-                  <p className="text-slate-300 leading-8">{section.text}</p>
+                  <p className="text-[#94A3B8] leading-8">{section.text}</p>
                 </div>
               ))}
             </div>

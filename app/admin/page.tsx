@@ -285,8 +285,8 @@ export default function AdminPage() {
   // --- AUTH LOADING ---
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-[#00152D] text-white flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#134B78] border-t-[#3B82F6] rounded-full animate-spin" />
+      <main className="min-h-screen bg-[#0D1B2A] text-white flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#243447] border-t-[#3B82F6] rounded-full animate-spin" />
       </main>
     );
   }
@@ -294,18 +294,18 @@ export default function AdminPage() {
   // --- LOGIN ---
   if (!isAllowed) {
     return (
-      <main className="min-h-screen bg-[#00152D] text-white flex items-center justify-center p-6" dir="rtl">
-        <div className="w-full max-w-md bg-[#021B3A] border border-[#134B78] rounded-3xl p-8 text-center shadow-[0_0_40px_rgba(59,130,246,0.12)]">
-          <p className="text-red-400 font-bold mb-3 tracking-widest">— ADMIN ACCESS</p>
+      <main className="min-h-screen bg-[#0D1B2A] text-white flex items-center justify-center p-6" dir="rtl">
+        <div className="w-full max-w-md bg-[#111D2E] border border-[#243447] rounded-2xl p-8 text-center shadow-lg">
+          <p className="text-[#E53935] font-bold mb-3">— ADMIN ACCESS</p>
           <h1 className="text-3xl font-extrabold mb-3">دخول لوحة التحكم</h1>
-          <p className="text-slate-400 mb-6">هذه الصفحة مخصصة للأشخاص المخوّلين فقط.</p>
+          <p className="text-[#94A3B8] mb-6">هذه الصفحة مخصصة للأشخاص المخوّلين فقط.</p>
           {authError && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 text-red-400 text-sm font-bold">{authError}</div>
           )}
-          <input type="email" placeholder="البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-3" dir="ltr" />
-          <input type="password" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-4" dir="ltr" />
-          <button onClick={handleLogin} className="w-full bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold">دخول</button>
-          <Link href="/" className="block mt-5 text-[#3B82F6] hover:text-white transition">العودة للخريطة</Link>
+          <input type="email" placeholder="البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-3" dir="ltr" />
+          <input type="password" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] mb-4" dir="ltr" />
+          <button onClick={handleLogin} className="w-full bg-[#E53935] hover:bg-[#C62828] transition rounded-xl px-5 py-3 font-bold">دخول</button>
+          <Link href="/" className="block mt-5 text-[#E53935] hover:text-white transition">العودة للخريطة</Link>
         </div>
       </main>
     );
@@ -313,16 +313,16 @@ export default function AdminPage() {
 
   // --- DASHBOARD ---
   return (
-    <main className="min-h-screen bg-[#00152D] text-white p-6" dir="rtl">
+    <main className="min-h-screen bg-[#0D1B2A] text-white p-6" dir="rtl">
       <section className="max-w-7xl mx-auto">
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 border-b border-[#134B78] pb-6">
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 border-b border-[#243447] pb-6">
           <div>
             <div className="flex items-center gap-4">
-              <Link href="/" className="text-[#3B82F6] font-bold hover:text-white transition">العودة للخريطة</Link>
+              <Link href="/" className="text-[#E53935] font-bold hover:text-white transition">العودة للخريطة</Link>
               <button onClick={handleLogout} className="text-red-400 hover:text-red-300 text-sm font-bold transition">تسجيل الخروج</button>
             </div>
             <h1 className="text-4xl font-extrabold mt-4">لوحة تحكم AlBayan</h1>
-            <p className="text-slate-300 mt-3">إدارة الأحداث المباشرة على الخريطة.</p>
+            <p className="text-[#94A3B8] mt-3">إدارة الأحداث المباشرة على الخريطة.</p>
           </div>
           <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 px-4 py-2 rounded-full">
             <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
@@ -339,19 +339,19 @@ export default function AdminPage() {
         {/* Edit modal */}
         {editingAlert && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-            <div className="bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 w-full max-w-lg shadow-2xl">
+            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6 w-full max-w-lg shadow-2xl">
               <h2 className="text-2xl font-bold mb-2">تعديل الحدث</h2>
-              <p className="text-slate-400 mb-6">📍 {editingAlert.area} — {editingAlert.type_label}</p>
+              <p className="text-[#94A3B8] mb-6">📍 {editingAlert.area} — {editingAlert.type_label}</p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">الوصف</label>
-                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={4} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none" />
+                  <label className="block text-sm text-[#94A3B8] mb-2">الوصف</label>
+                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={4} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none" />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">تمديد المدة (من الآن)</label>
-                  <select value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                  <label className="block text-sm text-[#94A3B8] mb-2">تمديد المدة (من الآن)</label>
+                  <select value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
                     <option value="keep">إبقاء المدة الحالية</option>
                     {DURATION_OPTIONS.map((d) => (
                       <option key={d.value} value={d.value}>{d.label}</option>
@@ -365,8 +365,8 @@ export default function AdminPage() {
                 </label>
 
                 <div className="flex gap-3">
-                  <button onClick={saveEdit} className="flex-1 bg-[#3B82F6] hover:bg-[#2563EB] transition rounded-xl px-5 py-3 font-bold">حفظ التعديلات</button>
-                  <button onClick={() => setEditingAlert(null)} className="flex-1 bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] transition rounded-xl px-5 py-3 font-bold">إلغاء</button>
+                  <button onClick={saveEdit} className="flex-1 bg-[#E53935] hover:bg-[#C62828] transition rounded-xl px-5 py-3 font-bold">حفظ التعديلات</button>
+                  <button onClick={() => setEditingAlert(null)} className="flex-1 bg-[#1B2D45] hover:bg-[#134B78] border border-[#243447] transition rounded-xl px-5 py-3 font-bold">إلغاء</button>
                 </div>
               </div>
             </div>
@@ -374,42 +374,42 @@ export default function AdminPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
-            <p className="text-slate-400 text-sm">النشطة</p>
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5">
+            <p className="text-[#94A3B8] text-sm">النشطة</p>
             <h2 className="text-3xl font-extrabold mt-2">{activeCount}</h2>
           </div>
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
-            <p className="text-slate-400 text-sm">العاجلة</p>
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5">
+            <p className="text-[#94A3B8] text-sm">العاجلة</p>
             <h2 className="text-3xl font-extrabold mt-2 text-red-400">{urgentCount}</h2>
           </div>
-          <div className="bg-[#021B3A] border border-[#134B78] rounded-2xl p-5">
-            <p className="text-slate-400 text-sm">المخفية</p>
-            <h2 className="text-3xl font-extrabold mt-2 text-slate-300">{hiddenCount}</h2>
+          <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5">
+            <p className="text-[#94A3B8] text-sm">المخفية</p>
+            <h2 className="text-3xl font-extrabold mt-2 text-[#94A3B8]">{hiddenCount}</h2>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Create form */}
-          <div className="lg:col-span-1 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 shadow-[0_0_35px_rgba(59,130,246,0.12)]">
+          <div className="lg:col-span-1 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 shadow-lg">
             <p className="text-red-400 font-bold mb-3">— إنشاء تنبيه</p>
             <h2 className="text-2xl font-bold mb-6">حدث جديد</h2>
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm text-slate-300 mb-2">نوع الحدث</label>
-                <select value={type} onChange={(e) => { setType(e.target.value); const n = ALERT_TYPES.find((i) => i.type === e.target.value); if (n) setRadius(String(n.radius)); }} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                <label className="block text-sm text-[#94A3B8] mb-2">نوع الحدث</label>
+                <select value={type} onChange={(e) => { setType(e.target.value); const n = ALERT_TYPES.find((i) => i.type === e.target.value); if (n) setRadius(String(n.radius)); }} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
                   {ALERT_TYPES.map((item) => (<option key={item.type} value={item.type}>{item.label}</option>))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  البلدات {selectedAreas.length > 0 && <span className="text-[#3B82F6]">({selectedAreas.length})</span>}
+                <label className="block text-sm text-[#94A3B8] mb-2">
+                  البلدات {selectedAreas.length > 0 && <span className="text-[#E53935]">({selectedAreas.length})</span>}
                 </label>
                 {selectedAreas.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {selectedAreas.map((a) => (
-                      <span key={a.pcode} className="flex items-center gap-1 bg-[#3B82F6]/20 border border-[#3B82F6]/40 text-[#93C5FD] rounded-lg px-3 py-1.5 text-sm font-bold">
+                      <span key={a.pcode} className="flex items-center gap-1 bg-[#E53935]/20 border border-[#3B82F6]/40 text-[#93C5FD] rounded-lg px-3 py-1.5 text-sm font-bold">
                         {a.name}
                         <button onClick={() => removeArea(a.pcode)} className="hover:text-red-400 transition text-lg mr-1">&times;</button>
                       </span>
@@ -418,13 +418,13 @@ export default function AdminPage() {
                   </div>
                 )}
                 <div className="relative">
-                  <input type="text" value={areaSearch} placeholder="ابحث عن بلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => { if (areaSearch) setShowAreaSuggestions(true); }} onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 200)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" />
+                  <input type="text" value={areaSearch} placeholder="ابحث عن بلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => { if (areaSearch) setShowAreaSuggestions(true); }} onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 200)} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" />
                   {showAreaSuggestions && filteredAreas.length > 0 && (
-                    <div className="absolute z-50 mt-2 w-full bg-[#021B3A] border border-[#134B78] rounded-xl max-h-64 overflow-y-auto shadow-xl">
+                    <div className="absolute z-50 mt-2 w-full bg-[#111D2E] border border-[#243447] rounded-xl max-h-64 overflow-y-auto shadow-xl">
                       {filteredAreas.map((item, i) => (
-                        <button key={item.pcode || `a-${i}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => addArea(item)} className="w-full text-right px-4 py-3 hover:bg-[#0A3563] transition border-b border-white/5">
+                        <button key={item.pcode || `a-${i}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => addArea(item)} className="w-full text-right px-4 py-3 hover:bg-[#1B2D45] transition border-b border-white/5">
                           <span className="font-bold">{item.name}</span>
-                          <span className="text-slate-400 text-sm mr-2">— {item.district}</span>
+                          <span className="text-[#94A3B8] text-sm mr-2">— {item.district}</span>
                         </button>
                       ))}
                     </div>
@@ -434,20 +434,20 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">المدة</label>
-                  <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
+                  <label className="block text-sm text-[#94A3B8] mb-2">المدة</label>
+                  <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]">
                     {DURATION_OPTIONS.map((d) => (<option key={d.value} value={d.value}>{d.label}</option>))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-300 mb-2">النطاق (متر)</label>
-                  <input value={radius} onChange={(e) => setRadius(e.target.value)} className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
+                  <label className="block text-sm text-[#94A3B8] mb-2">النطاق (متر)</label>
+                  <input value={radius} onChange={(e) => setRadius(e.target.value)} className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6]" dir="ltr" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">الوصف</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="وصف الحدث..." className="w-full bg-[#001F3F] border border-[#134B78] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none" />
+                <label className="block text-sm text-[#94A3B8] mb-2">الوصف</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="وصف الحدث..." className="w-full bg-[#162236] border border-[#243447] rounded-xl px-4 py-3 outline-none focus:border-[#3B82F6] resize-none" />
               </div>
 
               <label className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4 cursor-pointer">
@@ -455,44 +455,44 @@ export default function AdminPage() {
                 <span className="font-bold">خبر عاجل</span>
               </label>
 
-              <label className="flex items-center gap-3 bg-[#0A3563] border border-[#134B78] rounded-xl p-4 cursor-pointer">
+              <label className="flex items-center gap-3 bg-[#1B2D45] border border-[#243447] rounded-xl p-4 cursor-pointer">
                 <input type="checkbox" checked={autoPostTelegram} onChange={(e) => setAutoPostTelegram(e.target.checked)} className="w-5 h-5" />
                 <span className="font-bold">نشر تلقائي على تلغرام</span>
               </label>
 
-              <button onClick={publishAlert} disabled={publishing || selectedAreas.length === 0} className={`w-full transition rounded-xl px-5 py-4 font-extrabold text-lg ${publishing || selectedAreas.length === 0 ? "bg-slate-600 cursor-not-allowed" : "bg-[#3B82F6] hover:bg-[#2563EB]"}`}>
+              <button onClick={publishAlert} disabled={publishing || selectedAreas.length === 0} className={`w-full transition rounded-xl px-5 py-4 font-extrabold text-lg ${publishing || selectedAreas.length === 0 ? "bg-slate-600 cursor-not-allowed" : "bg-[#E53935] hover:bg-[#C62828]"}`}>
                 {publishing ? "جاري النشر..." : selectedAreas.length === 0 ? "اختر بلدة" : `نشر ${selectedAreas.length > 1 ? selectedAreas.length + " أحداث" : "الحدث"}`}
               </button>
             </div>
           </div>
 
           {/* Alerts list */}
-          <div className="lg:col-span-2 bg-[#021B3A] border border-[#134B78] rounded-3xl p-6 shadow-[0_0_35px_rgba(59,130,246,0.12)]">
+          <div className="lg:col-span-2 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div>
-                <p className="text-red-400 font-bold mb-2">— الأحداث</p>
+                <p className="text-[#E53935] font-bold mb-2">— الأحداث</p>
                 <h2 className="text-2xl font-bold">إدارة الأحداث</h2>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={loadAlerts} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition">تحديث</button>
-                <button onClick={clearExpired} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-xl px-4 py-2 font-bold transition">حذف المنتهي</button>
+                <button onClick={loadAlerts} className="bg-[#1B2D45] hover:bg-[#134B78] border border-[#243447] rounded-xl px-4 py-2 font-bold transition">تحديث</button>
+                <button onClick={clearExpired} className="bg-[#1B2D45] hover:bg-[#134B78] border border-[#243447] rounded-xl px-4 py-2 font-bold transition">حذف المنتهي</button>
                 <button onClick={clearAll} className="bg-red-600 hover:bg-red-700 rounded-xl px-4 py-2 font-bold transition">حذف الكل</button>
               </div>
             </div>
 
             {alerts.length === 0 ? (
-              <div className="text-center py-16 border border-dashed border-[#134B78] rounded-2xl">
+              <div className="text-center py-16 border border-dashed border-[#243447] rounded-2xl">
                 <div className="text-5xl mb-4">🗺️</div>
                 <h3 className="text-xl font-bold mb-2">لا توجد أحداث</h3>
-                <p className="text-slate-400 mb-4">أضف أول حدث ليظهر مباشرة على الخريطة.</p>
-                <p className="text-slate-500 text-sm">تأكد من تشغيل <code className="bg-slate-800 px-2 py-1 rounded">supabase-setup.sql</code></p>
+                <p className="text-[#94A3B8] mb-4">أضف أول حدث ليظهر مباشرة على الخريطة.</p>
+                <p className="text-[#64748B] text-sm">تأكد من تشغيل <code className="bg-slate-800 px-2 py-1 rounded">supabase-setup.sql</code></p>
               </div>
             ) : (
               <div className="space-y-4 max-h-[720px] overflow-y-auto pl-1">
                 {alerts.map((alert) => {
                   const isHidden = alert.status === "hidden";
                   return (
-                    <div key={alert.id} className={`rounded-2xl border p-5 transition ${isHidden ? "bg-slate-900/60 border-slate-700 opacity-70" : "bg-[#001F3F] border-[#134B78]"}`}>
+                    <div key={alert.id} className={`rounded-2xl border p-5 transition ${isHidden ? "bg-slate-900/60 border-slate-700 opacity-70" : "bg-[#162236] border-[#243447]"}`}>
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -501,16 +501,16 @@ export default function AdminPage() {
                             {alert.is_urgent && <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">عاجل</span>}
                             {isHidden && <span className="bg-slate-600 text-white text-xs px-2 py-1 rounded-full">مخفي</span>}
                           </div>
-                          <p className="text-slate-300 mb-1">📍 {alert.area}</p>
-                          {alert.description && <p className="text-slate-400 leading-7 mt-2">{alert.description}</p>}
-                          <div className="text-xs text-slate-500 mt-3">⏳ {getRemainingTime(alert.expires_at)}</div>
+                          <p className="text-[#94A3B8] mb-1">📍 {alert.area}</p>
+                          {alert.description && <p className="text-[#94A3B8] leading-7 mt-2">{alert.description}</p>}
+                          <div className="text-xs text-[#64748B] mt-3">⏳ {getRemainingTime(alert.expires_at)}</div>
                         </div>
                         <div className="flex md:flex-col gap-2 min-w-[120px]">
-                          <button onClick={() => startEdit(alert)} className="bg-[#3B82F6] hover:bg-[#2563EB] rounded-lg px-4 py-2 font-bold transition">تعديل</button>
+                          <button onClick={() => startEdit(alert)} className="bg-[#E53935] hover:bg-[#C62828] rounded-lg px-4 py-2 font-bold transition">تعديل</button>
                           {isHidden ? (
                             <button onClick={() => showAlert(alert.id)} className="bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2 font-bold transition">إظهار</button>
                           ) : (
-                            <button onClick={() => hideAlert(alert.id)} className="bg-[#0A3563] hover:bg-[#134B78] border border-[#134B78] rounded-lg px-4 py-2 font-bold transition">إخفاء</button>
+                            <button onClick={() => hideAlert(alert.id)} className="bg-[#1B2D45] hover:bg-[#134B78] border border-[#243447] rounded-lg px-4 py-2 font-bold transition">إخفاء</button>
                           )}
                           <button onClick={() => deleteAlert(alert.id)} className="bg-red-600 hover:bg-red-700 rounded-lg px-4 py-2 font-bold transition">حذف</button>
                         </div>
