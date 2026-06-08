@@ -1,97 +1,169 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
 
-const termsSections = [
-  { title: "1. قبول الشروط", text: "باستخدامك لمنصة AlBayan Alert Map أو تصفحك لأي من صفحاتها، فإنك تقر بأنك قرأت هذه الشروط والأحكام وفهمتها وتوافق على الالتزام بها بشكل كامل." },
-  { title: "2. طبيعة المنصة", text: "AlBayan Alert Map منصة ميدانية وإخبارية مستقلة تهدف إلى عرض التنبيهات والأحداث والتحديثات الميدانية بشكل سريع ومنظم، ولا تُعد جهة رسمية أو حكومية ما لم يُذكر ذلك صراحة." },
-  { title: "3. الاستخدام المقبول", text: "يلتزم المستخدم باستخدام المنصة بطريقة قانونية ومسؤولة، وعدم محاولة تعطيل الخدمة أو اختراقها أو إساءة استخدامها أو استغلالها لنشر معلومات كاذبة أو مضللة." },
-  { title: "4. دقة المعلومات", text: "نبذل جهدًا للتحقق من المعلومات قبل نشرها، إلا أن بعض التنبيهات قد تكون أولية أو قيد المتابعة، ولا نضمن أن تكون جميع المعلومات دقيقة أو مكتملة أو محدثة في جميع الأوقات." },
-  { title: "5. البلاغات المرسلة", text: "يتحمل المستخدم المسؤولية الكاملة عن أي بلاغ أو صورة أو وصف أو معلومة يقوم بإرسالها، وتحتفظ المنصة بحق مراجعة أو رفض أو حذف أي محتوى مخالف أو غير مناسب." },
-  { title: "6. إساءة استخدام البلاغات", text: "يُمنع إرسال بلاغات كاذبة أو متعمدة أو مضللة بهدف نشر الذعر أو الشائعات أو الإضرار بالآخرين، ويحق للمنصة حظر أو تجاهل أي مصدر يثبت سوء استخدامه." },
-  { title: "7. الاعتماد على المعلومات", text: "المعلومات المنشورة على المنصة لا تُعد بديلًا عن التعليمات الرسمية الصادرة عن الجهات المختصة أو خدمات الطوارئ. يتحمل المستخدم مسؤولية قراراته بناءً على المعلومات المتاحة." },
-  { title: "8. المحتوى وحقوق النشر", text: "جميع الشعارات والتصاميم والنصوص والخرائط والمحتوى الخاص بالمنصة محمية بحقوق الملكية الفكرية، ولا يجوز نسخها أو إعادة استخدامها بشكل كامل دون إذن مسبق." },
-  { title: "9. إعادة نشر المحتوى", text: "يُسمح بمشاركة التنبيهات والمعلومات مع الإشارة الواضحة إلى المصدر، ويُمنع حذف العلامات التعريفية أو إعادة نشر المحتوى بطريقة مضللة أو منسوبة لجهة أخرى." },
-  { title: "10. الروابط والخدمات الخارجية", text: "قد تحتوي المنصة على روابط إلى Telegram أو WhatsApp أو خدمات خرائط أو أدوات خارجية. نحن غير مسؤولين عن محتوى أو سياسات أو أعطال تلك الخدمات." },
-  { title: "11. التوفر واستمرارية الخدمة", text: "نسعى لتوفير الخدمة بشكل مستمر، لكننا لا نضمن عدم حدوث انقطاع مؤقت بسبب الصيانة أو الضغط أو الأعطال التقنية أو الظروف الخارجة عن السيطرة." },
-  { title: "12. حدود المسؤولية", text: "تُقدّم المنصة خدماتها كما هي دون أي ضمانات صريحة أو ضمنية، ولا تتحمل المنصة أو القائمون عليها أي مسؤولية عن أضرار مباشرة أو غير مباشرة ناتجة عن استخدام الموقع." },
-  { title: "13. حماية المجتمع", text: "تحتفظ المنصة بحق إزالة أي محتوى يتضمن تحريضًا أو إساءة أو انتهاكًا للخصوصية أو نشر معلومات شخصية أو أي محتوى قد يعرّض الأفراد أو المجتمع للخطر." },
-  { title: "14. تعليق أو تقييد الوصول", text: "يجوز للمنصة تقييد أو تعليق أو إنهاء وصول أي مستخدم إلى الخدمات في حال مخالفة الشروط أو إساءة استخدام المنصة أو محاولة الإضرار بعملها." },
-  { title: "15. الدعم والتبرعات", text: "الدعم المقدم للمنصة اختياري بالكامل، ويُستخدم للمساهمة في تغطية تكاليف الخوادم، التطوير، الخرائط، وتحسين سرعة وصول التنبيهات. لا يُعد الدعم شراءً لخدمة أو ضمانًا لأي ميزة خاصة." },
-  { title: "16. تعديل الشروط", text: "قد يتم تحديث هذه الشروط والأحكام في أي وقت بما يتناسب مع تطوير المنصة أو تغيير الخدمات. استمرار استخدام الموقع بعد التحديث يعني قبول النسخة الجديدة." },
-  { title: "17. التواصل معنا", text: "لأي استفسار حول هذه الشروط والأحكام، يمكن التواصل معنا عبر القنوات الرسمية الخاصة بـ AlBayan Alert Map." },
+const alertTypeOptions = [
+  "غارات / قصف مدفعي", "مسيّرات", "تهديدات", "تمركز العدو",
+  "انتشار الجيش", "حوادث السير", "اشتباكات", "إصابات",
 ];
 
-export default function TermsPage() {
+type UserSettings = {
+  soundEnabled: boolean;
+  urgentBar: boolean;
+  highlightAreas: boolean;
+  selectedArea: string;
+  enabledAlertTypes: string[];
+};
+
+const DEFAULT_SETTINGS: UserSettings = {
+  soundEnabled: true, urgentBar: true, highlightAreas: true,
+  selectedArea: "صور", enabledAlertTypes: [...alertTypeOptions],
+};
+
+function loadSettings(): UserSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try { const s = localStorage.getItem("albayan-settings"); if (s) return { ...DEFAULT_SETTINGS, ...JSON.parse(s) }; } catch {}
+  return DEFAULT_SETTINGS;
+}
+
+export default function SettingsPage() {
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => { setSettings(loadSettings()); }, []);
+
+  function updateSetting<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSaved(false);
+  }
+
+  function toggleAlertType(type: string) {
+    setSettings((prev) => {
+      const enabled = prev.enabledAlertTypes.includes(type)
+        ? prev.enabledAlertTypes.filter((t) => t !== type)
+        : [...prev.enabledAlertTypes, type];
+      return { ...prev, enabledAlertTypes: enabled };
+    });
+    setSaved(false);
+  }
+
+  function handleSave() {
+    localStorage.setItem("albayan-settings", JSON.stringify(settings));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
   return (
     <PageShell>
       <div className="mt-8 mb-10 text-center">
-        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>الشروط والأحكام</p>
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">شروط استخدام المنصة</h1>
+        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>الإعدادات</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">إعدادات الخريطة</h1>
         <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>
-          باستخدامك لمنصة AlBayan Alert Map فإنك توافق على الالتزام بهذه الشروط، والتي توضّح قواعد استخدام المنصة، حدود المسؤولية، سياسة البلاغات، وحقوق المحتوى والدعم.
+          خصّص تجربة استخدام AlBayan Alert Map، واختر طريقة عرض التنبيهات والمناطق المهمة.
         </p>
-        <div className="mt-6 inline-block rounded-xl px-5 py-3" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-          آخر تحديث: يونيو 2026
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {[
-          { icon: "⚖️", title: "استخدام مسؤول", desc: "استخدام المنصة يجب أن يكون قانونيًا وغير مسيء." },
-          { icon: "🚨", title: "بلاغات موثوقة", desc: "يمنع إرسال بلاغات مضللة أو غير صحيحة." },
-          { icon: "🛡️", title: "حدود المسؤولية", desc: "التنبيهات لا تغني عن التعليمات الرسمية." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.desc}</p>
-          </div>
-        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <aside className="space-y-4 lg:sticky lg:top-6">
           <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "var(--accent)" }}>معلومات</p>
+            <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "var(--accent)" }}>حالة النظام</p>
             <div className="space-y-5">
-              {[
-                { label: "المنصة", title: "منصة مستقلة", text: "لا تمثل جهة رسمية أو حكومية إلا إذا ذُكر ذلك صراحة." },
-                { label: "المحتوى", title: "المعلومات قابلة للتحديث", text: "قد يتم تعديل أو حذف التنبيهات عند توفر معلومات جديدة." },
-                { label: "المسؤولية", title: "استخدم المعلومات بحذر", text: "لا تعتمد على التنبيهات بدلًا من التعليمات الرسمية." },
-              ].map((item) => (
-                <div key={item.label} className="pb-4 last:pb-0 last:border-b-0" style={{ borderBottom: "1px solid var(--border)" }}>
-                  <p className="text-xs font-bold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>{item.label}</p>
-                  <h3 className="font-bold">{item.title}</h3>
-                  <p className="text-sm mt-2 leading-7" style={{ color: "var(--text-secondary)" }}>{item.text}</p>
-                </div>
-              ))}
+              <div className="pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                <h3 className="font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                  النظام يعمل
+                </h3>
+              </div>
+              <div className="pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                <h3 className="font-bold">تغطية لبنان</h3>
+                <p className="text-sm mt-2 leading-7" style={{ color: "var(--text-secondary)" }}>تغطية ميدانية حسب المناطق المتوفرة في الخريطة.</p>
+              </div>
+              <div><h3 className="font-bold">AlBayan Alert Map v1.0</h3></div>
             </div>
           </div>
 
-          <div className="rounded-2xl p-6 bg-gradient-to-br from-red-600 to-red-700 text-white">
-            <h3 className="text-lg font-bold mb-3">ساهم في استمرارية المشروع</h3>
-            <p className="text-white/90 leading-7 mb-5">دعمكم يساعدنا في تغطية تكاليف الخوادم وتطوير خدمات التنبيهات.</p>
-            <Link href="/donate" className="block text-center bg-white text-red-600 hover:bg-slate-100 transition rounded-xl px-5 py-3 font-bold">دعم المشروع</Link>
+          <div className="rounded-2xl p-6" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+            <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "var(--text-secondary)" }}>روابط سريعة</p>
+            <div className="space-y-3">
+              <Link href="/faq" className="block rounded-xl px-4 py-3 font-bold transition hover:opacity-80" style={{ background: "var(--bg-card)" }}>الأسئلة الشائعة</Link>
+              <Link href="/privacy" className="block rounded-xl px-4 py-3 font-bold transition hover:opacity-80" style={{ background: "var(--bg-card)" }}>سياسة الخصوصية</Link>
+              <Link href="/terms" className="block rounded-xl px-4 py-3 font-bold transition hover:opacity-80" style={{ background: "var(--bg-card)" }}>الشروط والأحكام</Link>
+            </div>
           </div>
         </aside>
 
         <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
           <div className="text-center mb-8">
-            <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>البنود التفصيلية</p>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">قواعد استخدام المنصة</h2>
+            <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>تفضيلات المستخدم</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">تخصيص تجربة الخريطة</h2>
           </div>
-          <div className="space-y-4">
-            {termsSections.map((section) => (
-              <div key={section.title} className="rounded-xl p-5 transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <h3 className="text-lg font-bold mb-3">{section.title}</h3>
-                <p className="leading-8" style={{ color: "var(--text-secondary)" }}>{section.text}</p>
+
+          <div className="space-y-6">
+            <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <h3 className="text-lg font-bold mb-4">المنطقة المفضلة</h3>
+              <select value={settings.selectedArea} onChange={(e) => updateSetting("selectedArea", e.target.value)}
+                className="w-full rounded-xl px-4 py-3 outline-none transition"
+                style={{ background: "var(--bg-main)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                <option>صور</option><option>برج الشمالي</option><option>النبطية</option>
+                <option>بنت جبيل</option><option>الخيام</option><option>كفركلا</option>
+              </select>
+            </div>
+
+            <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <h3 className="text-lg font-bold mb-4">أنواع التنبيهات</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {alertTypeOptions.map((item) => (
+                  <label key={item} className="flex items-center gap-3 rounded-xl p-4 cursor-pointer transition hover:opacity-80"
+                    style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+                    <input type="checkbox" checked={settings.enabledAlertTypes.includes(item)} onChange={() => toggleAlertType(item)} className="w-5 h-5 accent-[var(--accent)]" />
+                    <span className="font-bold">{item}</span>
+                  </label>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="rounded-2xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <h3 className="text-lg font-bold mb-4">خيارات العرض</h3>
+              <div className="space-y-3">
+                <ToggleRow title="إظهار شريط الأخبار العاجلة" text="عرض التنبيه العاجل أعلى الخريطة عند وجود حدث مهم." enabled={settings.urgentBar} setEnabled={(v) => updateSetting("urgentBar", v)} />
+                <ToggleRow title="إبراز المناطق المهددة" text="تلوين المنطقة بالكامل عند وجود تهديد أو تمركز." enabled={settings.highlightAreas} setEnabled={(v) => updateSetting("highlightAreas", v)} />
+                <ToggleRow title="تشغيل صوت عند التنبيه" text="تنبيه صوتي عند وصول حدث عاجل جديد." enabled={settings.soundEnabled} setEnabled={(v) => updateSetting("soundEnabled", v)} />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <button onClick={handleSave} className={`flex-1 transition rounded-xl px-5 py-4 font-extrabold text-white ${saved ? "bg-green-600" : ""}`}
+                style={saved ? {} : { background: "var(--accent)" }}>
+                {saved ? "✓ تم الحفظ" : "حفظ الإعدادات"}
+              </button>
+              <Link href="/" className="flex-1 text-center rounded-xl px-5 py-4 font-extrabold transition"
+                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+                العودة للخريطة
+              </Link>
+            </div>
           </div>
         </div>
       </div>
       <Footer />
     </PageShell>
+  );
+}
+
+function ToggleRow({ title, text, enabled, setEnabled }: { title: string; text: string; enabled: boolean; setEnabled: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl p-4" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+      <div>
+        <h4 className="font-bold mb-1">{title}</h4>
+        <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{text}</p>
+      </div>
+      <button onClick={() => setEnabled(!enabled)}
+        className="w-12 h-7 rounded-full p-0.5 transition flex-shrink-0"
+        style={{ background: enabled ? "var(--accent)" : "var(--border)" }}>
+        <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow ${enabled ? "" : "translate-x-5"}`} />
+      </button>
+    </div>
   );
 }
