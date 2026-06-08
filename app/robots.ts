@@ -5,6 +5,6 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: "*", allow: "/", disallow: ["/admin", "/api/"] },
     ],
-    sitemap: "https://albayan-website-news.vercel.app/sitemap.xml",
+    sitemap: "https://albayan-lb.com/sitemap.xml",
   };
 }

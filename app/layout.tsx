@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: "منصة ميدانية مستقلة لعرض التنبيهات والأحداث المباشرة على الخريطة في لبنان.",
     type: "website",
     locale: "ar_LB",
-    url: "https://albayan-website-news.vercel.app",
+    url: "https://albayan-lb.com",
     siteName: "البيان الإخباري",
   },
   twitter: { card: "summary_large_image", title: "البيان الإخباري", description: "خريطة التنبيهات المباشرة — لبنان" },
