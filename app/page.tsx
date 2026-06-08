@@ -601,7 +601,7 @@ export default function Home() {
             <Link href="/donate" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("supportUs")}</Link>
             <Link href="/report" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold text-white" style={{ background: "var(--accent)" }}>{t("report")}</Link>
           </nav>
-          <button className="md:hidden map-btn !w-8 !h-8" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}</button>
+          <div className="md:hidden"><button className="map-btn !w-8 !h-8" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}</button></div>
         </div>
 
         {/* Mobile dropdown */}
