@@ -123,13 +123,17 @@ function popupColor(theme: string, key: "bg" | "border" | "text" | "muted" | "su
   return (theme === "light" ? light : dark)[key];
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
 function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const isAr = lang === "ar";
   const remaining = getRemainingTime(alert.expires_at, isAr);
   const color = TYPE_COLORS[alert.type] || "#5BA4E6";
   const label = isAr ? cleanLabel(alert.type_label) : (TYPE_LABELS_EN[alert.type] || cleanLabel(alert.type_label));
   const bg = popupColor(theme, "bg"), border = popupColor(theme, "border"), text = popupColor(theme, "text"), muted = popupColor(theme, "muted"), sub = popupColor(theme, "sub");
-  const imgHtml = alert.image_url ? `<img src="${alert.image_url}" style="width:100%;border-radius:10px;margin-top:10px;max-height:130px;object-fit:cover;" />` : "";
+  const imgHtml = alert.image_url ? `<img src="${escapeHtml(alert.image_url)}" style="width:100%;border-radius:10px;margin-top:10px;max-height:130px;object-fit:cover;" />` : "";
   const rawUrl = `${SITE_URL}/?alert=${alert.id}`;
   const shareUrl = encodeURIComponent(rawUrl);
   const shareText = encodeURIComponent(`${label} — ${alert.area}${alert.description ? "\n" + alert.description : ""}`);
@@ -144,10 +148,10 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
     <div style="height:3px;background:linear-gradient(${isAr ? "90deg" : "270deg"},${color},${color}88);"></div>
     <div style="padding:16px 18px 14px;text-align:${txtAlign};">
       <div style="margin-bottom:12px;">
-        <span style="background:${color}18;color:${color};border:1px solid ${color}30;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700;">${label}</span>
+        <span style="background:${color}18;color:${color};border:1px solid ${color}30;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700;">${escapeHtml(label)}</span>
       </div>
-      <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;line-height:1.4;">${alert.area}</h3>
-      <p style="margin:0;color:${muted};font-size:13px;line-height:1.9;">${alert.description || noDesc}</p>
+      <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;line-height:1.4;">${escapeHtml(alert.area)}</h3>
+      <p style="margin:0;color:${muted};font-size:13px;line-height:1.9;">${alert.description ? escapeHtml(alert.description) : noDesc}</p>
       ${imgHtml}
       <div style="margin-top:14px;background:${sub};border:1px solid ${border};border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
         <span style="color:${muted};font-size:11px;font-weight:600;">${remainLabel}</span>

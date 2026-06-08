@@ -263,6 +263,12 @@ function findArea(name: string): { name: string; lat: number; lng: number } {
 
 export async function POST(req: NextRequest) {
   try {
+    const tgSecret = req.headers.get("x-telegram-bot-api-secret-token");
+    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (!expectedSecret || tgSecret !== expectedSecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const update = await req.json();
     const message = update.message || update.channel_post;
     if (!message || !message.text) return NextResponse.json({ ok: true });
