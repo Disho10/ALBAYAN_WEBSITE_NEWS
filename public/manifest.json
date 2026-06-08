@@ -1,0 +1,17 @@
+{
+  "name": "البيان الإخباري — خريطة التنبيهات",
+  "short_name": "البيان",
+  "description": "منصة ميدانية مستقلة لعرض التنبيهات والأحداث المهمة على الخريطة في لبنان",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1628",
+  "theme_color": "#E53935",
+  "icons": [
+    { "src": "/new_logo.jpg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "/new_logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ],
+  "categories": ["news", "safety"],
+  "lang": "ar",
+  "dir": "rtl"
+}

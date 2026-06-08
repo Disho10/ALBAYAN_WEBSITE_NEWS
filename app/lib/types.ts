@@ -24,6 +24,7 @@ export type AlertItem = {
   status?: string;
   is_urgent?: boolean;
   created_at?: string;
+  image_url?: string | null;
 };
 
 export const ALERT_TYPES = [
@@ -42,3 +43,4 @@ export const ALERT_TYPES = [
 export const TELEGRAM_CHANNEL_URL = "https://t.me/AlBayan_Newss";
 export const WHATSAPP_URL = "https://whatsapp.com/channel/0029VbApl8OBlHpfDzyrrT0f";
 export const TELEGRAM_BOT_URL = "https://t.me/AlBayanReporterBot";
+export const SITE_URL = "https://albayan-website-news.vercel.app";

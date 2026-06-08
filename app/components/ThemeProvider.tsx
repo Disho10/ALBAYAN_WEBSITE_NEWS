@@ -1,34 +1,48 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import type { Lang, TKey } from "@/app/lib/i18n";
+import { tr } from "@/app/lib/i18n";
 
 type Theme = "dark" | "light";
 
-interface ThemeContextValue {
+interface AppContextValue {
   theme: Theme;
   toggleTheme: () => void;
+  lang: Lang;
+  toggleLang: () => void;
+  t: (key: TKey) => string;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
+const AppContext = createContext<AppContextValue>({
   theme: "dark",
   toggleTheme: () => {},
+  lang: "ar",
+  toggleLang: () => {},
+  t: (key) => key,
 });
 
-export function useTheme() {
-  return useContext(ThemeContext);
-}
+export function useTheme() { return useContext(AppContext); }
+export function useApp() { return useContext(AppContext); }
 
 export default function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [lang, setLang] = useState<Lang>("ar");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     try {
-      const saved = localStorage.getItem("albayan-theme") as Theme | null;
-      if (saved === "light" || saved === "dark") {
-        setTheme(saved);
-        document.documentElement.setAttribute("data-theme", saved);
+      const savedTheme = localStorage.getItem("albayan-theme") as Theme | null;
+      if (savedTheme === "light" || savedTheme === "dark") {
+        setTheme(savedTheme);
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+      const savedLang = localStorage.getItem("albayan-lang") as Lang | null;
+      if (savedLang === "ar" || savedLang === "en") {
+        setLang(savedLang);
+        document.documentElement.dir = savedLang === "ar" ? "rtl" : "ltr";
+        document.documentElement.lang = savedLang;
       }
     } catch {}
   }, []);
@@ -40,16 +54,23 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem("albayan-theme", next); } catch {}
   }
 
-  // Prevent flash of wrong theme
+  function toggleLang() {
+    const next = lang === "ar" ? "en" : "ar";
+    setLang(next);
+    document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+    document.documentElement.lang = next;
+    try { localStorage.setItem("albayan-lang", next); } catch {}
+  }
+
+  const t = useCallback((key: TKey) => tr(key, lang), [lang]);
+
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute("data-theme", theme);
-    }
+    if (mounted) document.documentElement.setAttribute("data-theme", theme);
   }, [theme, mounted]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <AppContext.Provider value={{ theme, toggleTheme, lang, toggleLang, t }}>
       {children}
-    </ThemeContext.Provider>
+    </AppContext.Provider>
   );
 }
