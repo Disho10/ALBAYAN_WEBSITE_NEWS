@@ -36,7 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <meta name="theme-color" content="#0A1628" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/new_logo.jpg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('albayan-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var l=localStorage.getItem('albayan-lang');if(l==='en'){document.documentElement.dir='ltr';document.documentElement.lang='en'}}catch(e){}})()` }} />
       </head>
       <body className={dubai.className}>

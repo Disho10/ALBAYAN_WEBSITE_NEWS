@@ -1,266 +1,185 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase-server";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const SITE_URL = "https://albayan-lb.com";
+const TELEGRAM_CHANNEL = "https://t.me/AlBayan_Newss";
+const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VbApl8OBlHpfDzyrrT0f";
 
-// Area mapping: Arabic name variants → { canonical name, lat, lng }
-// Includes Tzofar Arabic transliterations + our standard names
+/* ─── Load Lebanese areas from areas.json (cached at module level) ─── */
+type AreaEntry = { name: string; lat: number; lng: number };
+let LB_AREAS_CACHE: Map<string, AreaEntry> | null = null;
+
+function getLebaneseAreas(): Map<string, AreaEntry> {
+  if (LB_AREAS_CACHE) return LB_AREAS_CACHE;
+  try {
+    const raw = readFileSync(join(process.cwd(), "public/data/areas.json"), "utf-8");
+    const areas: { name: string; nameAr: string; lat: number; lng: number }[] = JSON.parse(raw);
+    const map = new Map<string, AreaEntry>();
+    for (const a of areas) {
+      const entry = { name: a.name, lat: a.lat, lng: a.lng };
+      map.set(a.name, entry);
+      map.set(a.nameAr, entry);
+      // Normalize: remove ال prefix, replace ی→ي, ة→ه
+      const norm = a.name.replace(/^ال/, "").replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي");
+      map.set(norm, entry);
+    }
+    LB_AREAS_CACHE = map;
+    return map;
+  } catch { return new Map(); }
+}
+
+function findLebaneseArea(name: string): AreaEntry | null {
+  const areas = getLebaneseAreas();
+  const clean = name.trim().replace(/\s+/g, " ");
+  // Exact
+  if (areas.has(clean)) return areas.get(clean)!;
+  // Without ال
+  const noAl = clean.replace(/^ال/, "");
+  if (areas.has(noAl)) return areas.get(noAl)!;
+  // Normalize chars
+  const norm = clean.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا");
+  if (areas.has(norm)) return areas.get(norm)!;
+  const normNoAl = norm.replace(/^ال/, "");
+  if (areas.has(normNoAl)) return areas.get(normNoAl)!;
+  // Partial match (area name contains search or search contains area name)
+  for (const [key, val] of areas) {
+    if (key.length > 3 && (key.includes(clean) || clean.includes(key))) return val;
+  }
+  // Normalized partial
+  for (const [key, val] of areas) {
+    const normKey = key.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا").replace(/^ال/, "");
+    if (normKey.length > 3 && (normKey.includes(normNoAl) || normNoAl.includes(normKey))) return val;
+  }
+  return null;
+}
+
+/* ─── Israeli area mapping (for siren detection — existing) ─── */
 const AREA_MAPPING: Record<string, { name: string; lat: number; lng: number }> = {
-  // === Border settlements ===
   "المطلة": { name: "المطلة", lat: 33.2778, lng: 35.5731 },
   "مطولا": { name: "المطلة", lat: 33.2778, lng: 35.5731 },
-  "متولا": { name: "المطلة", lat: 33.2778, lng: 35.5731 },
   "كريات شمونة": { name: "كريات شمونة", lat: 33.2073, lng: 35.5713 },
   "كريات شمونا": { name: "كريات شمونة", lat: 33.2073, lng: 35.5713 },
-  "قريات شمونة": { name: "كريات شمونة", lat: 33.2073, lng: 35.5713 },
-  "سديه نحميا": { name: "سديه نحميا", lat: 33.2394, lng: 35.5592 },
-  "كفار غلعادي": { name: "كفار غلعادي", lat: 33.2428, lng: 35.5683 },
-  "كفر جلعادي": { name: "كفار غلعادي", lat: 33.2428, lng: 35.5683 },
-  "تل حاي": { name: "تل حاي", lat: 33.2347, lng: 35.5689 },
-  "مسغاف عام": { name: "مسغاف عام", lat: 33.0797, lng: 35.5244 },
-  "المنارة": { name: "المنارة", lat: 33.2486, lng: 35.5322 },
-  "مرغليوت": { name: "مرغليوت", lat: 33.2247, lng: 35.5347 },
-  "مرجليوت": { name: "مرغليوت", lat: 33.2247, lng: 35.5347 },
-  "دفنا": { name: "دفنا", lat: 33.2267, lng: 35.64 },
-  "دان": { name: "دان", lat: 33.2492, lng: 35.6519 },
-  "هغوشريم": { name: "هغوشريم", lat: 33.2261, lng: 35.6156 },
-  "شلومي": { name: "شلومي", lat: 33.0747, lng: 35.1417 },
-  "رأس الناقورة": { name: "رأس الناقورة", lat: 33.0893, lng: 35.1058 },
-  "زرعيت": { name: "زرعيت", lat: 33.0822, lng: 35.1497 },
-  "شتولا": { name: "شتولا", lat: 33.0775, lng: 35.2075 },
-  "حنيتا": { name: "حنيتا", lat: 33.0722, lng: 35.1736 },
-  "دوفيف": { name: "دوفيف", lat: 33.0631, lng: 35.4214 },
-  "دوفب": { name: "دوفيف", lat: 33.0631, lng: 35.4214 },
-  "أفيفيم": { name: "أفيفيم", lat: 33.0547, lng: 35.4022 },
-  "افيفيم": { name: "أفيفيم", lat: 33.0547, lng: 35.4022 },
-  "يفتاح": { name: "يفتاح", lat: 33.1192, lng: 35.5008 },
-  "يفتح": { name: "يفتاح", lat: 33.1192, lng: 35.5008 },
-  "راموت نفتالي": { name: "راموت نفتالي", lat: 33.1025, lng: 35.5061 },
-  "راموت نافتالي": { name: "راموت نفتالي", lat: 33.1025, lng: 35.5061 },
-  "رموت نفتالي": { name: "راموت نفتالي", lat: 33.1025, lng: 35.5061 },
-  "ملكية": { name: "ملكية", lat: 33.0858, lng: 35.4672 },
-  "ملخيا": { name: "ملكية", lat: 33.0858, lng: 35.4672 },
-  "يرعون": { name: "يرعون", lat: 33.0789, lng: 35.4456 },
-  "يرؤون": { name: "يرعون", lat: 33.0789, lng: 35.4456 },
-  "ديشون": { name: "ديشون", lat: 33.0978, lng: 35.4494 },
-  "أيلون": { name: "أيلون", lat: 33.0567, lng: 35.2408 },
-  "ايلون": { name: "أيلون", lat: 33.0567, lng: 35.2408 },
-  "إيفن مناحم": { name: "إيفن مناحم", lat: 33.0533, lng: 35.35 },
-  "ايفن مناحم": { name: "إيفن مناحم", lat: 33.0533, lng: 35.35 },
-  "بتسيت": { name: "بتسيت", lat: 33.0531, lng: 35.1608 },
-  // === Northern cities ===
   "نهاريا": { name: "نهاريا", lat: 33.0061, lng: 35.0986 },
   "نهريا": { name: "نهاريا", lat: 33.0061, lng: 35.0986 },
   "عكا": { name: "عكا", lat: 32.928, lng: 35.0764 },
-  "عكو": { name: "عكا", lat: 32.928, lng: 35.0764 },
   "صفد": { name: "صفد", lat: 32.9646, lng: 35.4964 },
-  "تسفات": { name: "صفد", lat: 32.9646, lng: 35.4964 },
-  "طبريا": { name: "طبريا", lat: 32.7922, lng: 35.5312 },
-  "طبرية": { name: "طبريا", lat: 32.7922, lng: 35.5312 },
-  "كرميئيل": { name: "كرميئيل", lat: 32.9136, lng: 35.3061 },
-  "كرمئيل": { name: "كرميئيل", lat: 32.9136, lng: 35.3061 },
-  "معالوت": { name: "معالوت", lat: 33.0167, lng: 35.2719 },
-  "معالوت ترشيحا": { name: "معالوت", lat: 33.0167, lng: 35.2719 },
-  "حتسور": { name: "حتسور", lat: 32.9847, lng: 35.5403 },
-  "حاتسور": { name: "حتسور", lat: 32.9847, lng: 35.5403 },
-  "الناصرة": { name: "الناصرة", lat: 32.6996, lng: 35.3035 },
-  "نتسيرت": { name: "الناصرة", lat: 32.6996, lng: 35.3035 },
-  "نوف هجليل": { name: "نوف هجليل", lat: 32.727, lng: 35.3215 },
-  "العفولة": { name: "العفولة", lat: 32.6063, lng: 35.2893 },
-  "عفولة": { name: "العفولة", lat: 32.6063, lng: 35.2893 },
-  "بيسان": { name: "بيسان", lat: 32.4971, lng: 35.4967 },
-  "بيت شان": { name: "بيسان", lat: 32.4971, lng: 35.4967 },
-  "شفاعمرو": { name: "شفاعمرو", lat: 32.8053, lng: 35.1692 },
-  "مجدل شمس": { name: "مجدل شمس", lat: 33.271, lng: 35.77 },
-  // === Haifa metro ===
   "حيفا": { name: "حيفا", lat: 32.794, lng: 34.9896 },
-  "الخضيرة": { name: "الخضيرة", lat: 32.4341, lng: 34.9196 },
-  "خضيرة": { name: "الخضيرة", lat: 32.4341, lng: 34.9196 },
-  "كريات آتا": { name: "كريات آتا", lat: 32.81, lng: 35.1 },
-  "كريات بياليك": { name: "كريات بياليك", lat: 32.83, lng: 35.08 },
-  "كريات موتسكين": { name: "كريات موتسكين", lat: 32.84, lng: 35.07 },
-  "كريات يام": { name: "كريات يام", lat: 32.85, lng: 35.06 },
-  "نيشر": { name: "نيشر", lat: 32.77, lng: 35.04 },
-  "طيرة الكرمل": { name: "طيرة الكرمل", lat: 32.76, lng: 34.97 },
-  "عتليت": { name: "عتليت", lat: 32.6873, lng: 34.9404 },
-  "أم الفحم": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
-  "ام الفحم": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
-  // === Central ===
+  "شلومي": { name: "شلومي", lat: 33.0747, lng: 35.1417 },
+  "مسغاف عام": { name: "مسغاف عام", lat: 33.0797, lng: 35.5244 },
+  "أفيفيم": { name: "أفيفيم", lat: 33.0547, lng: 35.4022 },
+  "دوفيف": { name: "دوفيف", lat: 33.0631, lng: 35.4214 },
+  "يفتاح": { name: "يفتاح", lat: 33.1192, lng: 35.5008 },
   "تل أبيب": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
-  "تل ابيب": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
-  "نتانيا": { name: "نتانيا", lat: 32.3215, lng: 34.8532 },
-  "نتنيا": { name: "نتانيا", lat: 32.3215, lng: 34.8532 },
-  "هرتسليا": { name: "هرتسليا", lat: 32.1624, lng: 34.7916 },
-  "هرتسيليا": { name: "هرتسليا", lat: 32.1624, lng: 34.7916 },
-  "رمات غان": { name: "رمات غان", lat: 32.068, lng: 34.8237 },
-  "رمات جان": { name: "رمات غان", lat: 32.068, lng: 34.8237 },
-  "بني براك": { name: "بني براك", lat: 32.0831, lng: 34.8344 },
-  "بني برك": { name: "بني براك", lat: 32.0831, lng: 34.8344 },
-  "بتاح تكفا": { name: "بتاح تكفا", lat: 32.0841, lng: 34.8878 },
-  "بتح تكفا": { name: "بتاح تكفا", lat: 32.0841, lng: 34.8878 },
-  "كفار سابا": { name: "كفار سابا", lat: 32.1715, lng: 34.9073 },
-  "كفر سابا": { name: "كفار سابا", lat: 32.1715, lng: 34.9073 },
-  "رعنانا": { name: "رعنانا", lat: 32.1841, lng: 34.871 },
-  "رعننا": { name: "رعنانا", lat: 32.1841, lng: 34.871 },
-  "هود هشارون": { name: "هود هشارون", lat: 32.154, lng: 34.887 },
-  "حولون": { name: "حولون", lat: 32.0117, lng: 34.7749 },
-  "بات يام": { name: "بات يام", lat: 32.0167, lng: 34.751 },
-  "اللد": { name: "اللد", lat: 31.9516, lng: 34.8953 },
-  "لود": { name: "اللد", lat: 31.9516, lng: 34.8953 },
-  "الرملة": { name: "الرملة", lat: 31.929, lng: 34.8706 },
-  "رملة": { name: "الرملة", lat: 31.929, lng: 34.8706 },
-  "ريشون لتسيون": { name: "ريشون لتسيون", lat: 31.973, lng: 34.7925 },
-  "ريشون لتصيون": { name: "ريشون لتسيون", lat: 31.973, lng: 34.7925 },
-  "رحوفوت": { name: "رحوفوت", lat: 31.8928, lng: 34.8113 },
-  "رحوبوت": { name: "رحوفوت", lat: 31.8928, lng: 34.8113 },
-  "أشدود": { name: "أشدود", lat: 31.8014, lng: 34.6503 },
-  "اشدود": { name: "أشدود", lat: 31.8014, lng: 34.6503 },
-  "عسقلان": { name: "عسقلان", lat: 31.6658, lng: 34.5715 },
-  "اشكلون": { name: "عسقلان", lat: 31.6658, lng: 34.5715 },
   "القدس": { name: "القدس", lat: 31.7683, lng: 35.2137 },
   "بئر السبع": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
-  "بير السبع": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
-  "بئر شيبع": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
-  "سديروت": { name: "سديروت", lat: 31.5247, lng: 34.5967 },
-  "كريات جات": { name: "كريات جات", lat: 31.6089, lng: 34.7583 },
-  "موديعين": { name: "موديعين", lat: 31.8977, lng: 35.0102 },
-  "بيت شيمش": { name: "بيت شيمش", lat: 31.7466, lng: 34.9886 },
-  "كتسرين": { name: "كتسرين", lat: 32.9925, lng: 35.6917 },
-  "قتسرين": { name: "كتسرين", lat: 32.9925, lng: 35.6917 },
-  "ساخنين": { name: "ساخنين", lat: 32.8628, lng: 35.2942 },
-  "طمرة": { name: "طمرة", lat: 32.8531, lng: 35.1975 },
-  "ديمونا": { name: "ديمونا", lat: 31.0697, lng: 35.0367 },
-  "إيلات": { name: "إيلات", lat: 29.5577, lng: 34.9519 },
-  "ايلات": { name: "إيلات", lat: 29.5577, lng: 34.9519 },
-  // === Golan ===
-  "الجولان": { name: "الجولان", lat: 33.0, lng: 35.75 },
-  "الجليل الأعلى": { name: "الجليل الأعلى", lat: 33.05, lng: 35.5 },
-  // === Tzofar regions (fallback coords) ===
-  "مناشيه": { name: "الخضيرة", lat: 32.4341, lng: 34.9196 },
-  "واديعارة": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
-  "شارون": { name: "نتانيا", lat: 32.3215, lng: 34.8532 },
-  "الكرمل": { name: "حيفا", lat: 32.794, lng: 34.9896 },
-  "همفراتس": { name: "حيفا", lat: 32.81, lng: 35.04 },
-  "مركز الجليل": { name: "كرميئيل", lat: 32.9136, lng: 35.3061 },
-  "الجولان الجنوبي": { name: "كتسرين", lat: 32.9925, lng: 35.6917 },
-  "غوش دان": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
-  "النقب الغربي": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
-  "لخيش": { name: "كريات جات", lat: 31.6089, lng: 34.7583 },
-  "يهودا": { name: "القدس", lat: 31.7683, lng: 35.2137 },
-  "شفيلا": { name: "بيت شيمش", lat: 31.7466, lng: 34.9886 },
-  "المثلث الشمالي": { name: "أم الفحم", lat: 32.5169, lng: 35.1536 },
-  // === Common Tzofar sub-area names ===
-  "أور عكيفا": { name: "الخضيرة", lat: 32.5067, lng: 34.92 },
-  "بنيامينا": { name: "الخضيرة", lat: 32.5217, lng: 34.9453 },
-  "جسر الزرقاء": { name: "الخضيرة", lat: 32.5339, lng: 34.9061 },
-  "برديس حنا": { name: "الخضيرة", lat: 32.4728, lng: 34.9639 },
-  "كابول": { name: "كابول", lat: 32.8703, lng: 35.2106 },
-  "شعب": { name: "شفاعمرو", lat: 32.82, lng: 35.23 },
-  "طيرات كرمل": { name: "طيرة الكرمل", lat: 32.76, lng: 34.97 },
-  "دالية الكرمل": { name: "حيفا", lat: 32.695, lng: 35.04 },
-  "يوكنعام عيليت": { name: "يوكنعام", lat: 32.6594, lng: 35.1083 },
-  "يوكنعام هموشافه": { name: "يوكنعام", lat: 32.6594, lng: 35.1083 },
-  "حريش": { name: "أم الفحم", lat: 32.46, lng: 35.05 },
-  "كفر قرع": { name: "أم الفحم", lat: 32.488, lng: 35.1 },
-  "عرعرة": { name: "أم الفحم", lat: 32.498, lng: 35.092 },
-  "معاوية": { name: "أم الفحم", lat: 32.49, lng: 35.12 },
-  // === Hebrew names (fallback) ===
-  "קריית שמונה": { name: "كريات شمونة", lat: 33.2073, lng: 35.5713 },
-  "מטולה": { name: "المطلة", lat: 33.2778, lng: 35.5731 },
-  "חיפה": { name: "حيفا", lat: 32.794, lng: 34.9896 },
-  "תל אביב": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
-  "ירושלים": { name: "القدس", lat: 31.7683, lng: 35.2137 },
-  "נהריה": { name: "نهاريا", lat: 33.0061, lng: 35.0986 },
-  "עכו": { name: "عكا", lat: 32.928, lng: 35.0764 },
-  "צפת": { name: "صفد", lat: 32.9646, lng: 35.4964 },
-  "יפתח": { name: "يفتاح", lat: 33.1192, lng: 35.5008 },
-  "רמות נפתלי": { name: "راموت نفتالي", lat: 33.1025, lng: 35.5061 },
 };
+const FALLBACK = { name: "جنوب لبنان", lat: 33.27, lng: 35.22 };
 
-const FALLBACK = { name: "شمال فلسطين المحتلة", lat: 33.05, lng: 35.45 };
+/* ─── Detection patterns ─── */
+const IS_SIREN = [/صافرات?\s*(انذار|إنذار)/i, /red\s*alert/i, /🔴.*צבע\s*אדום/i, /צבע\s*אדום/i, /אזעקה/i, /صفارات/i, /صفارة/i, /إنذار.*صاروخ/i, /خطالمواجهة/i, /خط\s+المواجهة/i, /تسلل.*طائر/i];
+const IS_END = [/הסתיים/i, /انتهى\s+الحدث/i, /الحدث\s+في.*انتهى/i, /انتهاء.*الحدث/i];
+const IS_DRONE = [/طائر|مسيّر|مسير|UAV|drone|כלי\s*טיס/i];
 
-// === Alert type detection ===
-// Arabic Tzofar format: 🔴 اللون الأحمر ... خط المواجهة / اختراق مسيرات
-// Hebrew format: צבע אדום / חדירת כלי טיס
-const IS_ALERT = [/اللون الأحمر/i, /انذار احمر/i, /צבע אדום/i, /red alert/i, /🔴/];
-const IS_END = [/انتهى الحدث/i, /لقد انتهى/i];
-const IS_DRONE = [/مسيّر/i, /مسير/i, /طائر/i, /כלי טיס/i, /drone/i, /uav/i];
+// Avichay / IDF spokesman warning pattern
+const IS_AVICHAY_WARNING = [
+  /انذار\s*عاجل\s*(الى|إلى)\s*سكان\s*لبنان/i,
+  /إنذار\s*عاجل\s*(الى|إلى)\s*سكان\s*لبنان/i,
+  /تحذير\s*عاجل\s*(الى|إلى)\s*سكان\s*لبنان/i,
+  /البلدات\s*والقرى\s*التالية/i,
+  /عليكم\s*إخلاء\s*منازلكم/i,
+  /المتحدث\s*باسم\s*جيش\s*الدفاع/i,
+  /أفيخاي\s*أدرعي/i,
+  /افيخاي\s*ادرعي/i,
+];
 
-function isAlert(text: string): boolean {
-  return IS_ALERT.some((p) => p.test(text));
-}
+function isAlert(text: string): boolean { return IS_SIREN.some((p) => p.test(text)); }
+function isEndMessage(text: string): boolean { return IS_END.some((p) => p.test(text)); }
+function isDroneAlert(text: string): boolean { return IS_DRONE.some((p) => p.test(text)); }
+function isAvichayWarning(text: string): boolean { return IS_AVICHAY_WARNING.some((p) => p.test(text)); }
 
-function isEndMessage(text: string): boolean {
-  return IS_END.some((p) => p.test(text));
-}
+/* ─── Extract village names from Avichay warning ─── */
+function extractAvichayVillages(text: string): string[] {
+  // Pattern: "البلدات والقرى التالية: village1, village2, village3🔸"
+  // Or: "المتواجدين في: village1, village2🔸"
+  const patterns = [
+    /التالية\s*:\s*([^🔸]+)/,
+    /المتواجدين\s*في\s*:\s*([^🔸]+)/,
+    /المتواجدين\s+في\s+([^🔸]+?)(?:🔸|في\s+ضوء)/,
+  ];
 
-function isDroneAlert(text: string): boolean {
-  return IS_DRONE.some((p) => p.test(text));
-}
-
-function extractAreas(text: string): string[] {
-  const areas: string[] = [];
-
-  // Handle end messages
-  const endMatch = text.match(/الحدث في\s+([^(\[]+)/i);
-  if (endMatch) {
-    return endMatch[1].split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1);
+  for (const p of patterns) {
+    const match = text.match(p);
+    if (match) {
+      let villagesPart = match[1];
+      // Remove parenthetical notes like (جزین)
+      villagesPart = villagesPart.replace(/\([^)]*\)/g, "");
+      // Split by comma (Arabic or Latin)
+      const villages = villagesPart.split(/[,،]/)
+        .map(s => s.replace(/[\u200B-\u200D\uFEFF‼️🔸🔹⚠️🚨]/g, "").trim())
+        .filter(s => s.length > 1 && s.length < 30);
+      return villages;
+    }
   }
+  return [];
+}
 
-  // Handle complex Tzofar format with bullet points (•):
-  // • مناشيه: الخضيرة - شرق, أور عكيفا, قيساريا (دقيقة ونصف)
-  // • واديعارة: ام الفحم, عرعرة (دقيقة ونصف)
-  const bulletSections = text.split("•").filter((s) => s.trim().length > 3);
+/* ─── Extract areas from siren alerts (existing logic) ─── */
+function extractSirenAreas(text: string): string[] {
+  const areas: string[] = [];
+  const endMatch = text.match(/الحدث في\s+([^(\[]+)/i);
+  if (endMatch) return endMatch[1].split(/[,،]/).map(s => s.trim()).filter(s => s.length > 1);
 
+  const bulletSections = text.split("•").filter(s => s.trim().length > 3);
   if (bulletSections.length > 1) {
     for (const section of bulletSections) {
       const colonMatch = section.match(/[^:]*:\s*([^]*)/);
       if (colonMatch) {
-        let areasPart = colonMatch[1];
-        // Remove time refs
-        areasPart = areasPart.replace(/\([^)]*(?:ثانية|ثواني|دقيقة|دقائق|ونصف)[^)]*\)/g, "");
-        areasPart = areasPart.replace(/\d{1,2}:\d{2}:/g, "");
-        const parts = areasPart.split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1);
+        let areasPart = colonMatch[1].replace(/\([^)]*(?:ثانية|ثواني|دقيقة|دقائق|ونصف)[^)]*\)/g, "").replace(/\d{1,2}:\d{2}:/g, "");
+        const parts = areasPart.split(/[,،]/).map(s => s.trim()).filter(s => s.length > 1);
         for (const part of parts) {
-          let clean = part.replace(/\s*-\s*(شرق|غرب|مركز|شمال|جنوب|نافيه\s*\S*|مفراتس|نيفيه\s*\S*)$/i, "").replace(/\[.*?\]/g, "").trim();
+          const clean = part.replace(/\s*-\s*(شرق|غرب|مركز|شمال|جنوب|نافيه\s*\S*|مفراتس|نيفيه\s*\S*)$/i, "").replace(/\[.*?\]/g, "").trim();
           if (clean.length > 1) areas.push(clean);
         }
       }
     }
   }
-
-  // Simple format: خطالمواجهة: area1, area2
   if (areas.length === 0) {
     const simple = [/خطالمواجهة\s*:\s*([^(\[]+)/i, /خط\s+المواجهة\s*:\s*([^(\[]+)/i, /تسلل[^:]*:\s*([^(\[]+)/i];
-    for (const p of simple) {
-      const m = text.match(p);
-      if (m) { areas.push(...m[1].replace(/\([^)]*\)/g, "").split(/[,،]/).map((s) => s.trim()).filter((s) => s.length > 1)); break; }
-    }
+    for (const p of simple) { const m = text.match(p); if (m) { areas.push(...m[1].replace(/\([^)]*\)/g, "").split(/[,،]/).map(s => s.trim()).filter(s => s.length > 1)); break; } }
   }
-
-  // Fallback: scan for known names
-  if (areas.length === 0) {
-    for (const name of Object.keys(AREA_MAPPING)) {
-      if (name.length > 3 && text.includes(name)) areas.push(name);
-    }
-  }
-
-  return areas.map((a) => a.replace(/[\[\]🔴⚠️🚨✈️]/g, "").trim()).filter((a) => a.length > 1);
+  if (areas.length === 0) { for (const name of Object.keys(AREA_MAPPING)) { if (name.length > 3 && text.includes(name)) areas.push(name); } }
+  return areas.map(a => a.replace(/[\[\]🔴⚠️🚨✈️]/g, "").trim()).filter(a => a.length > 1);
 }
 
-function findArea(name: string): { name: string; lat: number; lng: number } {
-  // Exact match
+function findIsraeliArea(name: string): { name: string; lat: number; lng: number } {
   if (AREA_MAPPING[name]) return AREA_MAPPING[name];
-  // Trimmed match
   const trimmed = name.trim();
   if (AREA_MAPPING[trimmed]) return AREA_MAPPING[trimmed];
-  // Partial match
-  for (const [key, value] of Object.entries(AREA_MAPPING)) {
-    if (key.includes(trimmed) || trimmed.includes(key)) return value;
-  }
+  for (const [key, value] of Object.entries(AREA_MAPPING)) { if (key.includes(trimmed) || trimmed.includes(key)) return value; }
   return FALLBACK;
 }
 
+/* ─── Format share message ─── */
+function formatShareMessage(typeLabel: string, area: string, desc: string, alertId: number, remaining: string): string {
+  const now = new Date();
+  const date = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  return [
+    `🚨 ${typeLabel} — ${area}`,
+    `⏱ ${remaining}`,
+    `📅 ${date} · ${time}`,
+    `🗺️ ${SITE_URL}/?alert=${alertId}`,
+    `📢 ${TELEGRAM_CHANNEL}`,
+    `📱 ${WHATSAPP_CHANNEL}`,
+  ].join("\n");
+}
+
+/* ═══════════════════════════════════════════════════════
+   WEBHOOK HANDLER
+   ═══════════════════════════════════════════════════════ */
 export async function POST(req: NextRequest) {
   try {
     const tgSecret = req.headers.get("x-telegram-bot-api-secret-token");
@@ -275,77 +194,144 @@ export async function POST(req: NextRequest) {
 
     const text: string = message.text;
 
-    // Handle END messages — expire matching alerts
+    /* ─── 1. Handle END messages — expire siren alerts ─── */
     if (isEndMessage(text)) {
-      const endAreas = extractAreas(text);
+      const endAreas = extractSirenAreas(text);
       for (const areaName of endAreas) {
-        const mapped = findArea(areaName);
-        await supabaseAdmin
-          .from("alerts")
-          .update({ status: "hidden" })
-          .eq("area", mapped.name)
-          .in("type", ["siren_missile", "siren_drone", "siren"])
-          .eq("status", "active");
+        const mapped = findIsraeliArea(areaName);
+        await supabaseAdmin.from("alerts").update({ status: "hidden" })
+          .eq("area", mapped.name).in("type", ["siren_missile", "siren_drone", "siren"]).eq("status", "active");
       }
       return NextResponse.json({ ok: true, action: "expired", areas: endAreas });
     }
 
-    // Handle START messages
+    /* ─── 2. Handle Avichay / IDF spokesman warnings ─── */
+    if (isAvichayWarning(text)) {
+      const villageNames = extractAvichayVillages(text);
+      if (villageNames.length === 0) return NextResponse.json({ ok: true, skipped: true, reason: "no villages found" });
+
+      const matchedAreas: AreaEntry[] = [];
+      const unmatchedNames: string[] = [];
+      const seen = new Set<string>();
+
+      for (const vName of villageNames) {
+        const found = findLebaneseArea(vName);
+        if (found && !seen.has(found.name)) {
+          seen.add(found.name);
+          matchedAreas.push(found);
+        } else if (!found) {
+          unmatchedNames.push(vName);
+        }
+      }
+
+      if (matchedAreas.length === 0) return NextResponse.json({ ok: true, skipped: true, reason: "no areas matched", tried: villageNames });
+
+      const allNames = matchedAreas.map(a => a.name).join("، ");
+      const desc = `⚠️ إنذار عاجل: على سكان ${allNames} إخلاء منازلهم فوراً. تحذير من المتحدث باسم جيش العدو.`;
+
+      const rows = matchedAreas.map(area => ({
+        title: "⚠️ تحذير إخلاء",
+        area: area.name,
+        type: "threat",
+        type_label: "⚠️ تحذير إخلاء",
+        color: "#F59E0B",
+        description: desc,
+        lat: area.lat, lng: area.lng,
+        radius: 1500,
+        expires_at: new Date(Date.now() + 120 * 60000).toISOString(), // 2 hours
+        status: "active",
+        is_urgent: true,
+      }));
+
+      const { data: inserted, error } = await supabaseAdmin.from("alerts").insert(rows).select("id");
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+      // Auto-post to Telegram channel
+      if (BOT_TOKEN && process.env.TELEGRAM_CHANNEL_ID) {
+        const firstId = inserted?.[0]?.id || 0;
+        const channelMsg = [
+          `🚨⚠️ تحذير إخلاء عاجل ⚠️🚨`,
+          ``,
+          `📍 ${allNames}`,
+          ``,
+          `${desc}`,
+          ``,
+          `⏱ 2 ${`ساعة`}`,
+          `📅 ${new Date().toLocaleDateString("ar-LB", { day: "numeric", month: "long", year: "numeric" })}`,
+          `🗺️ الخريطة المباشرة: ${SITE_URL}/?alert=${firstId}`,
+          `📢 تلغرام: ${TELEGRAM_CHANNEL}`,
+          `📱 واتساب: ${WHATSAPP_CHANNEL}`,
+          ``,
+          `#البيان #تحذير_إخلاء #لبنان`,
+        ].join("\n");
+
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHANNEL_ID, text: channelMsg }),
+        }).catch(() => {});
+      }
+
+      return NextResponse.json({ ok: true, action: "avichay_warning", created: rows.length, areas: matchedAreas.map(a => a.name), unmatched: unmatchedNames });
+    }
+
+    /* ─── 3. Handle siren alerts (existing logic) ─── */
     if (!isAlert(text)) return NextResponse.json({ ok: true, skipped: true });
 
     const alertType = isDroneAlert(text) ? "siren_drone" : "siren_missile";
-    const areaNames = extractAreas(text);
+    const areaNames = extractSirenAreas(text);
     if (areaNames.length === 0) return NextResponse.json({ ok: true, skipped: true });
 
-    // Extract shelter time if available
     const shelterMatch = text.match(/\((\d+)\s*ثانية\)/);
     const shelterTime = shelterMatch ? shelterMatch[1] + " ثانية" : "";
 
     const alertAreas: { name: string; lat: number; lng: number }[] = [];
     const seen = new Set<string>();
     for (const area of areaNames) {
-      const mapped = findArea(area);
+      const mapped = findIsraeliArea(area);
       if (!seen.has(mapped.name)) { seen.add(mapped.name); alertAreas.push(mapped); }
     }
 
     const isMissile = alertType === "siren_missile";
     const typeLabel = isMissile ? "🚀 صواريخ" : "✈️ مسيّرات معادية";
     const shelterNote = shelterTime ? ` وقت الاحتماء: ${shelterTime}.` : "";
-    const desc = isMissile
-      ? `إطلاق صواريخ باتجاه ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote}.`
-      : `اختراق طائرات مسيّرة معادية أجواء ${alertAreas.map((a) => a.name).join("، ")}.${shelterNote}.`;
+    const sirenDesc = isMissile
+      ? `إطلاق صواريخ باتجاه ${alertAreas.map(a => a.name).join("، ")}.${shelterNote}`
+      : `اختراق طائرات مسيّرة معادية أجواء ${alertAreas.map(a => a.name).join("، ")}.${shelterNote}`;
 
-    const rows = alertAreas.map((area) => ({
-      title: typeLabel,
-      area: area.name,
-      type: alertType,
-      type_label: typeLabel,
-      color: "#EF4444",
-      description: desc,
-      lat: area.lat, lng: area.lng,
-      radius: 3000,
-      expires_at: new Date(Date.now() + 10 * 60000).toISOString(),
-      status: "active",
-      is_urgent: true,
+    const rows = alertAreas.map(area => ({
+      title: typeLabel, area: area.name, type: alertType, type_label: typeLabel,
+      color: "#EF4444", description: sirenDesc, lat: area.lat, lng: area.lng,
+      radius: 3000, expires_at: new Date(Date.now() + 10 * 60000).toISOString(),
+      status: "active", is_urgent: true,
     }));
 
-    const { error } = await supabaseAdmin.from("alerts").insert(rows);
+    const { data: inserted, error } = await supabaseAdmin.from("alerts").insert(rows).select("id");
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-    // Auto-post to our Telegram channel
     if (BOT_TOKEN && process.env.TELEGRAM_CHANNEL_ID) {
       const emoji = isMissile ? "🚀" : "✈️";
+      const firstId = inserted?.[0]?.id || 0;
+      const channelMsg = [
+        `${emoji} ${typeLabel} ${emoji}`,
+        ``,
+        `📍 ${alertAreas.map(a => a.name).join("، ")}`,
+        shelterNote ? `⏱${shelterNote}` : "",
+        ``,
+        `📅 ${new Date().toLocaleDateString("ar-LB", { day: "numeric", month: "long", year: "numeric" })}`,
+        `🗺️ الخريطة المباشرة: ${SITE_URL}/?alert=${firstId}`,
+        `📢 تلغرام: ${TELEGRAM_CHANNEL}`,
+        `📱 واتساب: ${WHATSAPP_CHANNEL}`,
+        ``,
+        `#البيان #صافرات`,
+      ].filter(Boolean).join("\n");
+
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: process.env.TELEGRAM_CHANNEL_ID,
-          text: `${emoji} ${typeLabel} ${emoji}\n\n📍 ${alertAreas.map((a) => a.name).join("، ")}\n${shelterNote ? `⏱ ${shelterNote}\n` : ""}\n⚠️ يرجى أخذ الحيطة والحذر\n\n#البيان`,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHANNEL_ID, text: channelMsg }),
       }).catch(() => {});
     }
 
-    return NextResponse.json({ ok: true, created: rows.length, type: alertType, areas: alertAreas.map((a) => a.name) });
+    return NextResponse.json({ ok: true, created: rows.length, type: alertType, areas: alertAreas.map(a => a.name) });
   } catch (error) {
     console.error("Webhook error:", error);
     return NextResponse.json({ ok: true });

@@ -136,7 +136,18 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const imgHtml = alert.image_url ? `<img src="${escapeHtml(alert.image_url)}" style="width:100%;border-radius:10px;margin-top:10px;max-height:130px;object-fit:cover;" />` : "";
   const rawUrl = `${SITE_URL}/?alert=${alert.id}`;
   const shareUrl = encodeURIComponent(rawUrl);
-  const shareText = encodeURIComponent(`${label} — ${alert.area}${alert.description ? "\n" + alert.description : ""}`);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const shareText = encodeURIComponent([
+    `🚨 ${label} — ${alert.area}`,
+    `⏱ ${remaining}`,
+    `📅 ${dateStr} · ${timeStr}`,
+    alert.description ? `📝 ${alert.description}` : "",
+    `🗺️ ${rawUrl}`,
+    `📢 https://t.me/AlBayan_Newss`,
+    `📱 https://whatsapp.com/channel/0029VbApl8OBlHpfDzyrrT0f`,
+  ].filter(Boolean).join("\n"));
   const remainLabel = isAr ? "المدة المتبقية" : "Remaining";
   const noDesc = isAr ? "لا توجد تفاصيل إضافية." : "No additional details.";
   const copiedLabel = isAr ? "✓ تم" : "✓ Done";
