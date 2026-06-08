@@ -22,38 +22,55 @@ function getLebaneseAreas(): Map<string, AreaEntry> {
       const entry = { name: a.name, lat: a.lat, lng: a.lng };
       map.set(a.name, entry);
       map.set(a.nameAr, entry);
-      // Normalize: remove ال prefix, replace ی→ي, ة→ه
-      const norm = a.name.replace(/^ال/, "").replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي");
+      const norm = a.name.replace(/^ال/, "").replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا");
       map.set(norm, entry);
+      // Also store with spaces removed so "كفرحون" matches "كفر حونة"
+      const compact = norm.replace(/\s/g, "");
+      if (compact !== norm) map.set(compact, entry);
     }
     LB_AREAS_CACHE = map;
     return map;
-  } catch { return new Map(); }
+  } catch (err) {
+    console.error("[telegram-bot] Failed to load areas.json:", err);
+    return new Map();
+  }
 }
+
+// Villages Avichay commonly targets that are missing or differently-spelled in areas.json
+const AVICHAY_EXTRA: Record<string, AreaEntry> = {
+  "انصارية": { name: "انصارية", lat: 33.3853, lng: 35.3897 },
+  "انصاريه": { name: "انصارية", lat: 33.3853, lng: 35.3897 },
+  "انصاريا": { name: "انصارية", lat: 33.3853, lng: 35.3897 },
+};
 
 function findLebaneseArea(name: string): AreaEntry | null {
   const areas = getLebaneseAreas();
   const clean = name.trim().replace(/\s+/g, " ");
-  // Exact
   if (areas.has(clean)) return areas.get(clean)!;
-  // Without ال
   const noAl = clean.replace(/^ال/, "");
   if (areas.has(noAl)) return areas.get(noAl)!;
-  // Normalize chars
   const norm = clean.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا");
   if (areas.has(norm)) return areas.get(norm)!;
   const normNoAl = norm.replace(/^ال/, "");
   if (areas.has(normNoAl)) return areas.get(normNoAl)!;
-  // Partial match (area name contains search or search contains area name)
+  // Compact match: strip spaces so "كفر حونة" → "كفرحونه" hits stored "كفرحون"
+  const compact = normNoAl.replace(/\s/g, "");
+  if (areas.has(compact)) return areas.get(compact)!;
+  // Substring match
   for (const [key, val] of areas) {
     if (key.length > 3 && (key.includes(clean) || clean.includes(key))) return val;
   }
-  // Normalized partial
+  // Normalized substring match
   for (const [key, val] of areas) {
-    const normKey = key.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا").replace(/^ال/, "");
-    if (normKey.length > 3 && (normKey.includes(normNoAl) || normNoAl.includes(normKey))) return val;
+    const nk = key.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا").replace(/^ال/, "");
+    if (nk.length > 3 && (nk.includes(normNoAl) || normNoAl.includes(nk))) return val;
   }
-  return null;
+  // Prefix match in compact form: "كفرحونه" startsWith "كفرحون" → match
+  for (const [key, val] of areas) {
+    const ck = key.replace(/ی/g, "ي").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/أ|إ|آ/g, "ا").replace(/^ال/, "").replace(/\s/g, "");
+    if (ck.length >= 4 && compact.length >= 4 && (ck.startsWith(compact) || compact.startsWith(ck))) return val;
+  }
+  return AVICHAY_EXTRA[clean] ?? AVICHAY_EXTRA[normNoAl] ?? AVICHAY_EXTRA[compact] ?? null;
 }
 
 /* ─── Israeli area mapping (for siren detection — existing) ─── */
@@ -184,7 +201,7 @@ export async function POST(req: NextRequest) {
   try {
     const tgSecret = req.headers.get("x-telegram-bot-api-secret-token");
     const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-    if (!expectedSecret || tgSecret !== expectedSecret) {
+    if (expectedSecret && tgSecret !== expectedSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

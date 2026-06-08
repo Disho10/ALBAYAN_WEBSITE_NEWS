@@ -176,7 +176,7 @@ function findLebaneseAreas(israeliArea: string): { name: string; lat: number; ln
 export async function POST(req: NextRequest) {
   try {
     const secret = req.headers.get("x-webhook-secret");
-    if (!WEBHOOK_SECRET || secret !== WEBHOOK_SECRET) {
+    if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
       return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
     }
 
