@@ -3,303 +3,139 @@
 import { useState } from "react";
 import Link from "next/link";
 import Footer from "@/app/components/Footer";
+import PageShell from "@/app/components/PageShell";
 import { TELEGRAM_CHANNEL_URL, WHATSAPP_URL } from "@/app/lib/types";
 
 const faqs = [
-  {
-    q: "ما هو AlBayan Alert Map؟",
-    a: "AlBayan Alert Map منصة ميدانية وإخبارية تهدف إلى عرض التنبيهات والأحداث المهمة على الخريطة بشكل سريع ومنظم، مع تقديم تحديثات واضحة تساعد المستخدمين على متابعة ما يجري حسب المناطق.",
-  },
-  {
-    q: "من أين تحصلون على المعلومات؟",
-    a: "نعتمد على مصادر ميدانية، مراسلين، بلاغات المستخدمين، ومصادر موثوقة، مع محاولة التحقق من المعلومات قبل نشرها أو تحديثها قدر الإمكان.",
-  },
-  {
-    q: "هل جميع التنبيهات مؤكدة؟",
-    a: "نسعى للتحقق قدر الإمكان، لكن بعض التنبيهات الأولية قد تكون قيد المتابعة أو التحديث بحسب تطور الحدث وتوفر معلومات إضافية.",
-  },
-  {
-    q: "هل يمكنني إرسال بلاغ؟",
-    a: "نعم، يمكن لأي شخص إرسال بلاغ أو معلومة ميدانية عبر صفحة البلاغات أو عبر البوت الرسمي، وسيتم مراجعة البلاغ قبل الاعتماد عليه.",
-  },
-  {
-    q: "هل يمكنني أن أصبح مراسلًا؟",
-    a: "نرحب بالمساهمين والمراسلين الميدانيين، ويمكن التواصل معنا عبر القنوات الرسمية للمشاركة في نقل الأخبار والمعلومات من المناطق.",
-  },
-  {
-    q: "هل أحتاج إلى إنشاء حساب؟",
-    a: "لا، يمكن استخدام الموقع ومتابعة التنبيهات دون إنشاء حساب أو تسجيل دخول.",
-  },
-  {
-    q: "لماذا تطلبون الدعم؟",
-    a: "يساعد الدعم في تغطية تكاليف الخوادم، تطوير المنصة، تحديث الخرائط، وتحسين سرعة وصول التنبيهات إلى المستخدمين.",
-  },
-  {
-    q: "هل يتم حفظ موقعي الجغرافي؟",
-    a: "لا يتم تتبع أو حفظ موقعك الجغرافي إلا إذا اخترت مشاركة معلومات الموقع بنفسك أثناء إرسال بلاغ.",
-  },
-  {
-    q: "ماذا أفعل إذا وجدت معلومة غير صحيحة؟",
-    a: "يمكنك إرسال تصحيح أو ملاحظة عبر صفحة البلاغات، وسنقوم بمراجعتها بأسرع وقت ممكن وتحديث المعلومات عند الحاجة.",
-  },
-  {
-    q: "هل الموقع تابع لجهة رسمية؟",
-    a: "AlBayan Alert Map مشروع مستقل ولا يمثل أي جهة حكومية أو رسمية ما لم يُذكر ذلك صراحة.",
-  },
-];
-
-const quickCards = [
-  {
-    icon: "🗺️",
-    title: "خريطة ميدانية",
-    text: "عرض الأحداث والتنبيهات حسب المنطقة.",
-  },
-  {
-    icon: "🚨",
-    title: "تنبيهات سريعة",
-    text: "متابعة التحديثات العاجلة بشكل منظم.",
-  },
-  {
-    icon: "📩",
-    title: "بلاغات المستخدمين",
-    text: "إرسال معلومات ميدانية للمراجعة والمتابعة.",
-  },
+  { q: "ما هو AlBayan Alert Map؟", a: "AlBayan Alert Map منصة ميدانية وإخبارية تهدف إلى عرض التنبيهات والأحداث المهمة على الخريطة بشكل سريع ومنظم، مع تقديم تحديثات واضحة تساعد المستخدمين على متابعة ما يجري حسب المناطق." },
+  { q: "من أين تحصلون على المعلومات؟", a: "نعتمد على مصادر ميدانية، مراسلين، بلاغات المستخدمين، ومصادر موثوقة، مع محاولة التحقق من المعلومات قبل نشرها أو تحديثها قدر الإمكان." },
+  { q: "هل جميع التنبيهات مؤكدة؟", a: "نسعى للتحقق قدر الإمكان، لكن بعض التنبيهات الأولية قد تكون قيد المتابعة أو التحديث بحسب تطور الحدث وتوفر معلومات إضافية." },
+  { q: "هل يمكنني إرسال بلاغ؟", a: "نعم، يمكن لأي شخص إرسال بلاغ أو معلومة ميدانية عبر صفحة البلاغات أو عبر البوت الرسمي، وسيتم مراجعة البلاغ قبل الاعتماد عليه." },
+  { q: "هل يمكنني أن أصبح مراسلًا؟", a: "نرحب بالمساهمين والمراسلين الميدانيين، ويمكن التواصل معنا عبر القنوات الرسمية للمشاركة في نقل الأخبار والمعلومات من المناطق." },
+  { q: "هل أحتاج إلى إنشاء حساب؟", a: "لا، يمكن استخدام الموقع ومتابعة التنبيهات دون إنشاء حساب أو تسجيل دخول." },
+  { q: "لماذا تطلبون الدعم؟", a: "يساعد الدعم في تغطية تكاليف الخوادم، تطوير المنصة، تحديث الخرائط، وتحسين سرعة وصول التنبيهات إلى المستخدمين." },
+  { q: "هل يتم حفظ موقعي الجغرافي؟", a: "لا يتم تتبع أو حفظ موقعك الجغرافي إلا إذا اخترت مشاركة معلومات الموقع بنفسك أثناء إرسال بلاغ." },
+  { q: "ماذا أفعل إذا وجدت معلومة غير صحيحة؟", a: "يمكنك إرسال تصحيح أو ملاحظة عبر صفحة البلاغات، وسنقوم بمراجعتها بأسرع وقت ممكن وتحديث المعلومات عند الحاجة." },
+  { q: "هل الموقع تابع لجهة رسمية؟", a: "AlBayan Alert Map مشروع مستقل ولا يمثل أي جهة حكومية أو رسمية ما لم يُذكر ذلك صراحة." },
 ];
 
 const sideInfo = [
-  {
-    label: "STATUS",
-    title: "النظام يعمل بشكل طبيعي",
-    text: "يتم تحديث المنصة ومتابعة البلاغات بشكل مستمر.",
-    dot: true,
-  },
-  {
-    label: "COVERAGE",
-    title: "لبنان — جميع المحافظات",
-    text: "تغطية الأخبار والتنبيهات حسب المناطق عند توفر المعلومات.",
-  },
-  {
-    label: "SOURCES",
-    title: "مصادر المعلومات",
-    text: "مراسلون ميدانيون، بلاغات المستخدمين، مصادر مفتوحة، ومتابعة مباشرة للأحداث.",
-  },
+  { label: "الحالة", title: "النظام يعمل بشكل طبيعي", text: "يتم تحديث المنصة ومتابعة البلاغات بشكل مستمر.", dot: true },
+  { label: "التغطية", title: "لبنان — جميع المحافظات", text: "تغطية الأخبار والتنبيهات حسب المناطق عند توفر المعلومات." },
+  { label: "المصادر", title: "مصادر المعلومات", text: "مراسلون ميدانيون، بلاغات المستخدمين، مصادر مفتوحة، ومتابعة مباشرة للأحداث." },
 ];
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <main className="min-h-screen bg-[#0D1B2A] text-white p-6" dir="rtl">
-      <section className="max-w-6xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center text-[#E53935] font-bold hover:text-white transition"
-        >
-          العودة للخريطة
-        </Link>
+    <PageShell>
+      <div className="mt-8 mb-10 text-center">
+        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>مركز المساعدة</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">الأسئلة الشائعة</h1>
+        <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>
+          صفحة مخصصة للإجابة على أكثر الأسئلة شيوعًا حول المنصة، وآلية نشر التنبيهات، وطريقة إرسال البلاغات.
+        </p>
+      </div>
 
-        <div className="mt-10 mb-10 text-center">
-          <p className="text-[#E53935] font-bold mb-3">
-            — HELP CENTER
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {[
+          { icon: "🗺️", title: "خريطة ميدانية", text: "عرض الأحداث والتنبيهات حسب المنطقة." },
+          { icon: "🚨", title: "تنبيهات سريعة", text: "متابعة التحديثات العاجلة بشكل منظم." },
+          { icon: "📩", title: "بلاغات المستخدمين", text: "إرسال معلومات ميدانية للمراجعة والمتابعة." },
+        ].map((c) => (
+          <div key={c.title} className="rounded-2xl p-5 text-center transition" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+            <div className="text-3xl mb-2">{c.icon}</div>
+            <h3 className="font-bold mb-1">{c.title}</h3>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.text}</p>
+          </div>
+        ))}
+      </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-            مركز المساعدة والأسئلة الشائعة
-          </h1>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
+          <div className="text-center mb-8">
+            <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>الأسئلة والأجوبة</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">كل شيء عليك معرفته</h2>
+            <p className="leading-8 max-w-2xl mx-auto" style={{ color: "var(--text-secondary)" }}>
+              جمعنا لك أهم الأسئلة حول مصادر المعلومات، دقة التنبيهات، البلاغات، الخصوصية، والدعم.
+            </p>
+          </div>
 
-          <p className="text-[#94A3B8] leading-8 max-w-3xl mx-auto">
-            صفحة مخصصة للإجابة على أكثر الأسئلة شيوعًا حول المنصة، وآلية
-            نشر التنبيهات، وطريقة إرسال البلاغات، والتعامل مع المعلومات
-            الميدانية.
-          </p>
+          <div className="space-y-3">
+            {faqs.map((item, index) => {
+              const isOpen = openIndex === index;
+              return (
+                <div key={item.q} className="rounded-xl overflow-hidden transition-all duration-300"
+                  style={{
+                    background: isOpen ? "var(--bg-elevated)" : "var(--bg-card)",
+                    border: `1px solid ${isOpen ? "var(--blue)" : "var(--border)"}`,
+                    boxShadow: isOpen ? "0 0 20px rgba(59,130,246,0.08)" : "none",
+                  }}>
+                  <button onClick={() => setOpenIndex(isOpen ? null : index)}
+                    className="w-full flex items-center justify-between gap-4 p-5 text-right">
+                    <span className="text-base font-bold">{item.q}</span>
+                    <span className="min-w-7 h-7 rounded-full flex items-center justify-center text-lg transition"
+                      style={{
+                        background: isOpen ? "var(--accent)" : "var(--bg-elevated)",
+                        color: isOpen ? "white" : "var(--accent)",
+                      }}>
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-5 pb-5 pt-3 leading-8" style={{ color: "var(--text-secondary)", borderTop: "1px solid var(--border)" }}>
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {quickCards.map((card) => (
-            <div
-              key={card.title}
-              className="bg-[#111D2E] border border-[#243447] rounded-2xl p-5 text-center hover:border-[#3B82F6] transition"
-            >
-              <div className="text-3xl mb-2">{card.icon}</div>
-              <h3 className="font-bold mb-1">{card.title}</h3>
-              <p className="text-[#94A3B8] text-sm">{card.text}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2 bg-[#111D2E] border border-[#243447] rounded-2xl p-6 md:p-8 shadow-lg">
-            <div className="text-center mb-8">
-              <p className="text-[#E53935] font-bold mb-3 tracking-widest">
-                FAQ CENTER
-              </p>
-
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                كل شيء عليك معرفته
-              </h2>
-
-              <p className="text-[#94A3B8] leading-8 max-w-2xl mx-auto">
-                جمعنا لك أهم الأسئلة حول مصادر المعلومات، دقة التنبيهات،
-                البلاغات، الخصوصية، والدعم.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {faqs.map((item, index) => {
-                const isOpen = openIndex === index;
-
-                return (
-                  <div
-                    key={item.q}
-                    className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
-                      isOpen
-                        ? "bg-[#1B2D45] border-[#3B82F6] shadow-[0_0_25px_rgba(59,130,246,0.12)]"
-                        : "bg-[#162236] border-[#243447]"
-                    }`}
-                  >
-                    <button
-                      onClick={() => setOpenIndex(isOpen ? null : index)}
-                      className="w-full flex items-center justify-between gap-4 p-5 text-right"
-                    >
-                      <span className="text-lg md:text-xl font-bold">
-                        {item.q}
-                      </span>
-
-                      <span
-                        className={`min-w-8 h-8 rounded-full flex items-center justify-center text-xl transition ${
-                          isOpen
-                            ? "bg-[#E53935] text-white"
-                            : "bg-[#1B2D45] text-[#E53935]"
-                        }`}
-                      >
-                        {isOpen ? "−" : "+"}
-                      </span>
-                    </button>
-
-                    {isOpen && (
-                      <div className="px-5 pb-5 pt-4 text-[#94A3B8] leading-8 border-t border-white/10">
-                        {item.a}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+            <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "var(--accent)" }}>معلومات المنصة</p>
+            <div className="space-y-5">
+              {sideInfo.map((item) => (
+                <div key={item.label} className="pb-4 last:pb-0 last:border-b-0" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <p className="text-xs font-bold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>{item.label}</p>
+                  <h3 className="font-bold flex items-center gap-2 mb-2">
+                    {item.dot && <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />}
+                    {item.title}
+                  </h3>
+                  <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>{item.text}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6 shadow-[0_0_30px_rgba(59,130,246,0.08)]">
-              <p className="text-[#E53935] font-bold mb-4 tracking-widest">
-                PLATFORM INFO
-              </p>
+          <div className="rounded-2xl p-6" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+            <h3 className="text-lg font-bold mb-3">هل لديك معلومة ميدانية؟</h3>
+            <p className="leading-7 mb-5" style={{ color: "var(--text-secondary)" }}>يمكنك إرسال بلاغ أو تصحيح ليتم مراجعته ومتابعته من فريق المنصة.</p>
+            <Link href="/report" className="block text-center rounded-xl px-5 py-3 font-bold text-white" style={{ background: "var(--accent)" }}>إرسال بلاغ</Link>
+          </div>
 
-              <div className="space-y-6">
-                {sideInfo.map((item) => (
-                  <div
-                    key={item.label}
-                    className="border-b border-white/10 pb-5 last:border-b-0 last:pb-0"
-                  >
-                    <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
-                      {item.label}
-                    </p>
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-red-600 to-red-700 text-white">
+            <h3 className="text-lg font-bold mb-3">ساهم في استمرارية المشروع</h3>
+            <p className="text-white/90 leading-7 mb-5">دعمكم يساعدنا في تغطية تكاليف الخوادم وتطوير خدمات التنبيهات.</p>
+            <Link href="/donate" className="block text-center bg-white text-red-600 hover:bg-slate-100 transition rounded-xl px-5 py-3 font-bold">دعم المشروع</Link>
+          </div>
 
-                    <h3 className="font-bold flex items-center gap-2 mb-2">
-                      {item.dot && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-                      )}
-                      {item.title}
-                    </h3>
-
-                    <p className="text-[#94A3B8] text-sm leading-7">
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+            <h3 className="text-lg font-bold mb-3">تابع التنبيهات أولًا بأول</h3>
+            <p className="leading-7 mb-5" style={{ color: "var(--text-secondary)" }}>انضم إلى قنواتنا الرسمية لمتابعة آخر التحديثات والتنبيهات.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer"
+                className="text-center rounded-xl px-4 py-3 transition" style={{ border: "1px solid var(--border)" }}>تلغرام</a>
+              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer"
+                className="text-center rounded-xl px-4 py-3 transition" style={{ border: "1px solid var(--border)" }}>واتساب</a>
             </div>
-
-            <div className="bg-[#1B2D45] border border-[#243447] rounded-2xl p-6">
-              <p className="text-[#94A3B8] text-xs font-bold tracking-widest mb-2">
-                REPORT
-              </p>
-
-              <h3 className="text-xl font-bold mb-3">
-                هل لديك معلومة ميدانية؟
-              </h3>
-
-              <p className="text-[#94A3B8] leading-7 mb-5">
-                يمكنك إرسال بلاغ أو تصحيح ليتم مراجعته ومتابعته من فريق
-                المنصة.
-              </p>
-
-              <Link
-                href="/report"
-                className="block text-center bg-[#E53935] hover:bg-[#C62828] transition rounded-xl px-5 py-3 font-bold"
-              >
-                إرسال بلاغ
-              </Link>
-            </div>
-
-            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6">
-              <p className="text-white/80 text-xs font-bold tracking-widest mb-2">
-                SUPPORT
-              </p>
-
-              <h3 className="text-xl font-bold mb-3">
-                ساهم في استمرارية المشروع
-              </h3>
-
-              <p className="text-white/90 leading-7 mb-5">
-                دعمكم يساعدنا في تغطية تكاليف الخوادم وتطوير خدمات
-                التنبيهات.
-              </p>
-
-              <Link
-                href="/donate"
-                className="block text-center bg-white text-red-600 hover:bg-slate-100 transition rounded-xl px-5 py-3 font-bold"
-              >
-                دعم المشروع
-              </Link>
-            </div>
-
-            <div className="bg-[#111D2E] border border-[#243447] rounded-2xl p-6">
-              <p className="text-[#64748B] text-xs font-bold tracking-widest mb-2">
-                COMMUNITY
-              </p>
-
-              <h3 className="text-xl font-bold mb-3">
-                تابع التنبيهات أولًا بأول
-              </h3>
-
-              <p className="text-[#94A3B8] leading-7 mb-5">
-                انضم إلى قنواتنا الرسمية لمتابعة آخر التحديثات والتنبيهات.
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <a
-                  href={TELEGRAM_CHANNEL_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-center border border-[#243447] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
-                >
-                  تلغرام
-                </a>
-
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-center border border-[#243447] hover:border-[#3B82F6] rounded-xl px-4 py-3 transition"
-                >
-                  واتساب
-                </a>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-    <Footer />
-    </main>
+          </div>
+        </aside>
+      </div>
+      <Footer />
+    </PageShell>
   );
 }
