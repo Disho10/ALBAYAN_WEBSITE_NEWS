@@ -89,11 +89,32 @@ const AREA_MAPPING: Record<string, { name: string; lat: number; lng: number }> =
   "أفيفيم": { name: "أفيفيم", lat: 33.0547, lng: 35.4022 },
   "دوفيف": { name: "دوفيف", lat: 33.0631, lng: 35.4214 },
   "يفتاح": { name: "يفتاح", lat: 33.1192, lng: 35.5008 },
+  "مرغليوت": { name: "مرغليوت", lat: 33.2389, lng: 35.5589 },
+  "المنارة": { name: "المنارة", lat: 33.2325, lng: 35.5261 },
+  "حنيتا": { name: "حنيتا", lat: 33.1028, lng: 35.1994 },
+  "الجليل الأعلى": { name: "الجليل الأعلى", lat: 33.15, lng: 35.5 },
+  "الجليل الغربي": { name: "الجليل الغربي", lat: 33.0, lng: 35.15 },
+  "الجليل": { name: "الجليل", lat: 32.9, lng: 35.3 },
+  "الجولان": { name: "الجولان", lat: 33.0, lng: 35.77 },
+  "طبريا": { name: "طبريا", lat: 32.7957, lng: 35.5302 },
+  "نتسيريت": { name: "الناصرة", lat: 32.6996, lng: 35.3035 },
+  "الناصرة": { name: "الناصرة", lat: 32.6996, lng: 35.3035 },
+  "حيفا الجنوبية": { name: "جنوب حيفا", lat: 32.72, lng: 35.0 },
+  "كرمئيل": { name: "كرمئيل", lat: 32.9138, lng: 35.2971 },
+  "نهف": { name: "نهف", lat: 32.9667, lng: 35.2167 },
   "تل أبيب": { name: "تل أبيب", lat: 32.0853, lng: 34.7818 },
   "القدس": { name: "القدس", lat: 31.7683, lng: 35.2137 },
   "بئر السبع": { name: "بئر السبع", lat: 31.2518, lng: 34.7913 },
+  "اشدود": { name: "أشدود", lat: 31.8044, lng: 34.6553 },
+  "أشدود": { name: "أشدود", lat: 31.8044, lng: 34.6553 },
+  "عسقلان": { name: "عسقلان", lat: 31.668, lng: 34.571 },
+  "نتانيا": { name: "نتانيا", lat: 32.3215, lng: 34.8532 },
+  "حدرا": { name: "حدرا", lat: 32.4342, lng: 34.9199 },
+  "جنين": { name: "جنين", lat: 32.4601, lng: 35.2979 },
+  "طولكرم": { name: "طولكرم", lat: 32.3101, lng: 35.0283 },
 };
-const FALLBACK = { name: "جنوب لبنان", lat: 33.27, lng: 35.22 };
+// Only used when zero areas matched — placed in northern Israel near the border
+const FALLBACK = { name: "شمال إسرائيل", lat: 33.07, lng: 35.37 };
 
 /* ─── Detection patterns ─── */
 const IS_SIREN = [/صافرات?\s*(انذار|إنذار)/i, /red\s*alert/i, /🔴.*צבע\s*אדום/i, /צבע\s*אדום/i, /אזעקה/i, /صفارات/i, /صفارة/i, /إنذار.*صاروخ/i, /خطالمواجهة/i, /خط\s+المواجهة/i, /تسلل.*طائر/i];
@@ -171,12 +192,12 @@ function extractSirenAreas(text: string): string[] {
   return areas.map(a => a.replace(/[\[\]🔴⚠️🚨✈️]/g, "").trim()).filter(a => a.length > 1);
 }
 
-function findIsraeliArea(name: string): { name: string; lat: number; lng: number } {
+function findIsraeliArea(name: string): { name: string; lat: number; lng: number } | null {
   if (AREA_MAPPING[name]) return AREA_MAPPING[name];
   const trimmed = name.trim();
   if (AREA_MAPPING[trimmed]) return AREA_MAPPING[trimmed];
-  for (const [key, value] of Object.entries(AREA_MAPPING)) { if (key.includes(trimmed) || trimmed.includes(key)) return value; }
-  return FALLBACK;
+  for (const [key, value] of Object.entries(AREA_MAPPING)) { if (key.length > 3 && (key.includes(trimmed) || trimmed.includes(key))) return value; }
+  return null;
 }
 
 /* ─── Format share message ─── */
@@ -216,6 +237,7 @@ export async function POST(req: NextRequest) {
       const endAreas = extractSirenAreas(text);
       for (const areaName of endAreas) {
         const mapped = findIsraeliArea(areaName);
+        if (!mapped) continue;
         await supabaseAdmin.from("alerts").update({ status: "hidden" })
           .eq("area", mapped.name).in("type", ["siren_missile", "siren_drone", "siren"]).eq("status", "active");
       }
@@ -305,8 +327,10 @@ export async function POST(req: NextRequest) {
     const seen = new Set<string>();
     for (const area of areaNames) {
       const mapped = findIsraeliArea(area);
+      if (!mapped) continue;
       if (!seen.has(mapped.name)) { seen.add(mapped.name); alertAreas.push(mapped); }
     }
+    if (alertAreas.length === 0) alertAreas.push(FALLBACK);
 
     const isMissile = alertType === "siren_missile";
     const typeLabel = isMissile ? "🚀 صواريخ" : "✈️ مسيّرات معادية";
