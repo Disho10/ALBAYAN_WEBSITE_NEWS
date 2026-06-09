@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
+import { Scale, ShieldCheck, AlertTriangle } from "lucide-react";
 
 const termsSections = [
   { title: "1. قبول الشروط", text: "باستخدامك لمنصة AlBayan Alert Map أو تصفحك لأي من صفحاتها، فإنك تقر بأنك قرأت هذه الشروط والأحكام وفهمتها وتوافق على الالتزام بها بشكل كامل." },
@@ -38,14 +39,16 @@ export default function TermsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
-          { icon: "⚖️", title: "استخدام مسؤول", desc: "استخدام المنصة يجب أن يكون قانونيًا وغير مسيء." },
-          { icon: "🚨", title: "بلاغات موثوقة", desc: "يمنع إرسال بلاغات مضللة أو غير صحيحة." },
-          { icon: "🛡️", title: "حدود المسؤولية", desc: "التنبيهات لا تغني عن التعليمات الرسمية." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.desc}</p>
+          { Icon: Scale, bg: "var(--blue-soft)", color: "var(--blue)", title: "استخدام مسؤول", desc: "استخدام المنصة يجب أن يكون قانونيًا وغير مسيء." },
+          { Icon: ShieldCheck, bg: "var(--green-soft)", color: "var(--green)", title: "بلاغات موثوقة", desc: "يمنع إرسال بلاغات مضللة أو غير صحيحة." },
+          { Icon: AlertTriangle, bg: "rgba(245,158,11,0.10)", color: "#F59E0B", title: "حدود المسؤولية", desc: "التنبيهات لا تغني عن التعليمات الرسمية." },
+        ].map(({ Icon, bg, color, title, desc }) => (
+          <div key={title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="font-bold mb-2">{title}</h3>
+            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{desc}</p>
           </div>
         ))}
       </div>

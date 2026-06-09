@@ -5,7 +5,7 @@ import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
 import Image from "next/image";
 import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Server, Map as MapIcon, Zap } from "lucide-react";
 
 export default function DonatePage() {
   const [copied, setCopied] = useState(false);
@@ -23,14 +23,16 @@ export default function DonatePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
-          { icon: "🖥️", title: "تشغيل الخوادم", desc: "دعمكم يساعدنا في إبقاء المنصة متاحة وسريعة." },
-          { icon: "🗺️", title: "تطوير الخريطة", desc: "تحسين تجربة المستخدم ودقة عرض المناطق والتنبيهات." },
-          { icon: "⚡", title: "سرعة التنبيهات", desc: "تسريع وصول التحديثات العاجلة إلى المستخدمين." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.desc}</p>
+          { Icon: Server, bg: "var(--blue-soft)", color: "var(--blue)", title: "تشغيل الخوادم", desc: "دعمكم يساعدنا في إبقاء المنصة متاحة وسريعة." },
+          { Icon: MapIcon, bg: "var(--blue-soft)", color: "var(--blue)", title: "تطوير الخريطة", desc: "تحسين تجربة المستخدم ودقة عرض المناطق والتنبيهات." },
+          { Icon: Zap, bg: "rgba(245,158,11,0.10)", color: "#F59E0B", title: "سرعة التنبيهات", desc: "تسريع وصول التحديثات العاجلة إلى المستخدمين." },
+        ].map(({ Icon, bg, color, title, desc }) => (
+          <div key={title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="font-bold mb-2">{title}</h3>
+            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{desc}</p>
           </div>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
+import { Lock, MapPin, Ban } from "lucide-react";
 
 const privacySections = [
   { title: "1. مقدمة", text: "نحترم في AlBayan Alert Map خصوصية المستخدمين ونلتزم بالتعامل مع البيانات بأعلى قدر ممكن من المسؤولية والشفافية. توضح هذه السياسة كيفية التعامل مع المعلومات أثناء استخدام الموقع أو إرسال البلاغات أو التواصل معنا." },
@@ -35,14 +36,16 @@ export default function PrivacyPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
-          { icon: "🔒", title: "حماية الخصوصية", desc: "لا نطلب إنشاء حساب لمتابعة الخريطة والتنبيهات." },
-          { icon: "📍", title: "لا تتبع للموقع", desc: "لا يتم حفظ موقعك الجغرافي إلا بإذن صريح منك." },
-          { icon: "🚫", title: "لا بيع للبيانات", desc: "لا نبيع أو نشارك بياناتكم لأغراض تجارية أو إعلانية." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.desc}</p>
+          { Icon: Lock, bg: "var(--green-soft)", color: "var(--green)", title: "حماية الخصوصية", desc: "لا نطلب إنشاء حساب لمتابعة الخريطة والتنبيهات." },
+          { Icon: MapPin, bg: "var(--blue-soft)", color: "var(--blue)", title: "لا تتبع للموقع", desc: "لا يتم حفظ موقعك الجغرافي إلا بإذن صريح منك." },
+          { Icon: Ban, bg: "var(--accent-soft)", color: "var(--accent)", title: "لا بيع للبيانات", desc: "لا نبيع أو نشارك بياناتكم لأغراض تجارية أو إعلانية." },
+        ].map(({ Icon, bg, color, title, desc }) => (
+          <div key={title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="font-bold mb-2">{title}</h3>
+            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{desc}</p>
           </div>
         ))}
       </div>

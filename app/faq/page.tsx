@@ -5,6 +5,7 @@ import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
 import { TELEGRAM_CHANNEL_URL, WHATSAPP_URL } from "@/app/lib/types";
+import { Map as MapIcon, Bell, Send } from "lucide-react";
 
 const faqs = [
   { q: "ما هو AlBayan Alert Map؟", a: "AlBayan Alert Map منصة ميدانية وإخبارية تهدف إلى عرض التنبيهات والأحداث المهمة على الخريطة بشكل سريع ومنظم، مع تقديم تحديثات واضحة تساعد المستخدمين على متابعة ما يجري حسب المناطق." },
@@ -40,14 +41,16 @@ export default function FAQPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
-          { icon: "🗺️", title: "خريطة ميدانية", text: "عرض الأحداث والتنبيهات حسب المنطقة." },
-          { icon: "🚨", title: "تنبيهات سريعة", text: "متابعة التحديثات العاجلة بشكل منظم." },
-          { icon: "📩", title: "بلاغات المستخدمين", text: "إرسال معلومات ميدانية للمراجعة والمتابعة." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center transition" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.text}</p>
+          { Icon: MapIcon, bg: "var(--blue-soft)", color: "var(--blue)", title: "خريطة ميدانية", text: "عرض الأحداث والتنبيهات حسب المنطقة." },
+          { Icon: Bell, bg: "var(--accent-soft)", color: "var(--accent)", title: "تنبيهات سريعة", text: "متابعة التحديثات العاجلة بشكل منظم." },
+          { Icon: Send, bg: "var(--green-soft)", color: "var(--green)", title: "بلاغات المستخدمين", text: "إرسال معلومات ميدانية للمراجعة والمتابعة." },
+        ].map(({ Icon, bg, color, title, text }) => (
+          <div key={title} className="rounded-2xl p-5 text-center transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="font-bold mb-2">{title}</h3>
+            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{text}</p>
           </div>
         ))}
       </div>

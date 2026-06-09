@@ -5,6 +5,16 @@ import { useApp } from "@/app/components/ThemeProvider";
 import PageShell from "@/app/components/PageShell";
 import Footer from "@/app/components/Footer";
 import { TELEGRAM_CHANNEL_URL, TELEGRAM_BOT_URL } from "@/app/lib/types";
+import { Map as MapIcon, Bell, Radio, Shield, Globe, Smartphone } from "lucide-react";
+
+const FEATURE_ICONS = [
+  { Icon: MapIcon, bg: "var(--blue-soft)", color: "var(--blue)" },
+  { Icon: Bell, bg: "var(--accent-soft)", color: "var(--accent)" },
+  { Icon: Radio, bg: "var(--blue-soft)", color: "var(--blue)" },
+  { Icon: Shield, bg: "var(--green-soft)", color: "var(--green)" },
+  { Icon: Globe, bg: "var(--blue-soft)", color: "var(--blue)" },
+  { Icon: Smartphone, bg: "var(--blue-soft)", color: "var(--blue)" },
+];
 
 export default function AboutPage() {
   const { t, lang } = useApp();
@@ -15,12 +25,12 @@ export default function AboutPage() {
     missionTitle: "مهمتنا",
     missionText: "توفير منصة مجانية تعرض التنبيهات الميدانية بشكل مباشر على الخريطة، لمساعدة المواطنين على متابعة ما يجري في مناطقهم واتخاذ قرارات مبنية على معلومات واضحة ومحدثة.",
     features: [
-      { icon: "🗺️", title: "خريطة تفاعلية مباشرة", desc: "متابعة الأحداث والتنبيهات لحظة بلحظة على خريطة لبنان." },
-      { icon: "🚨", title: "تنبيهات فورية", desc: "إشعارات صوتية وبصرية عند وصول تنبيه عاجل." },
-      { icon: "📡", title: "مصادر متعددة", desc: "مراسلون ميدانيون، بلاغات المستخدمين، ومصادر موثوقة." },
-      { icon: "🔒", title: "خصوصية كاملة", desc: "لا نتتبع موقعك ولا نبيع بياناتك لأي جهة." },
-      { icon: "🌐", title: "متعدد اللغات", desc: "واجهة عربية وإنجليزية لتوسيع نطاق الوصول." },
-      { icon: "📱", title: "متوافق مع الجوال", desc: "تجربة محسنة للهواتف المحمولة وتطبيقات التلغرام." },
+      { title: "خريطة تفاعلية مباشرة", desc: "متابعة الأحداث والتنبيهات لحظة بلحظة على خريطة لبنان." },
+      { title: "تنبيهات فورية", desc: "إشعارات صوتية وبصرية عند وصول تنبيه عاجل." },
+      { title: "مصادر متعددة", desc: "مراسلون ميدانيون، بلاغات المستخدمين، ومصادر موثوقة." },
+      { title: "خصوصية كاملة", desc: "لا نتتبع موقعك ولا نبيع بياناتك لأي جهة." },
+      { title: "متعدد اللغات", desc: "واجهة عربية وإنجليزية لتوسيع نطاق الوصول." },
+      { title: "متوافق مع الجوال", desc: "تجربة محسنة للهواتف المحمولة وتطبيقات التلغرام." },
     ],
     correspondentTitle: "كن مراسلاً ميدانياً",
     correspondentText: "نرحب بأي شخص يرغب في المساهمة في نقل الأخبار والمعلومات من المناطق. تواصل معنا عبر بوت الإبلاغ الرسمي.",
@@ -32,12 +42,12 @@ export default function AboutPage() {
     missionTitle: "Our Mission",
     missionText: "To provide a free platform that displays field alerts directly on the map, helping citizens stay informed about what's happening in their areas and make decisions based on clear, up-to-date information.",
     features: [
-      { icon: "🗺️", title: "Live Interactive Map", desc: "Follow events and alerts moment by moment on the map of Lebanon." },
-      { icon: "🚨", title: "Instant Alerts", desc: "Audio and visual notifications when an urgent alert arrives." },
-      { icon: "📡", title: "Multiple Sources", desc: "Field correspondents, user reports, and verified sources." },
-      { icon: "🔒", title: "Full Privacy", desc: "We don't track your location or sell your data to anyone." },
-      { icon: "🌐", title: "Multilingual", desc: "Arabic and English interface for wider accessibility." },
-      { icon: "📱", title: "Mobile Friendly", desc: "Optimized for mobile phones and Telegram apps." },
+      { title: "Live Interactive Map", desc: "Follow events and alerts moment by moment on the map of Lebanon." },
+      { title: "Instant Alerts", desc: "Audio and visual notifications when an urgent alert arrives." },
+      { title: "Multiple Sources", desc: "Field correspondents, user reports, and verified sources." },
+      { title: "Full Privacy", desc: "We don't track your location or sell your data to anyone." },
+      { title: "Multilingual", desc: "Arabic and English interface for wider accessibility." },
+      { title: "Mobile Friendly", desc: "Optimized for mobile phones and Telegram apps." },
     ],
     correspondentTitle: "Become a Field Correspondent",
     correspondentText: "We welcome anyone who wants to contribute by reporting news and information from their area. Contact us through the official reporting bot.",
@@ -59,13 +69,18 @@ export default function AboutPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 max-w-5xl mx-auto">
-        {content.features.map((f) => (
-          <div key={f.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{f.icon}</div>
-            <h3 className="font-bold mb-1">{f.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
-          </div>
-        ))}
+        {content.features.map((f, i) => {
+          const { Icon, bg, color } = FEATURE_ICONS[i];
+          return (
+            <div key={f.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+                <Icon size={22} />
+              </div>
+              <h3 className="font-bold mb-2">{f.title}</h3>
+              <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{f.desc}</p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">

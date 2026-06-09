@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
+import { Send, Search, Map as MapIcon, AlertTriangle } from "lucide-react";
 
 export default function ReportPage() {
   return (
@@ -15,14 +16,16 @@ export default function ReportPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
-          { icon: "📩", title: "أرسل البلاغ", desc: "أرسل التفاصيل عبر البوت الرسمي." },
-          { icon: "🔍", title: "نراجع المعلومات", desc: "تتم مراجعة البلاغ قبل نشره." },
-          { icon: "🗺️", title: "يظهر على الخريطة", desc: "يتم نشر التنبيه بعد التحقق منه." },
-        ].map((c) => (
-          <div key={c.title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <div className="text-3xl mb-2">{c.icon}</div>
-            <h3 className="font-bold mb-1">{c.title}</h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{c.desc}</p>
+          { Icon: Send, bg: "var(--green-soft)", color: "var(--green)", title: "أرسل البلاغ", desc: "أرسل التفاصيل عبر البوت الرسمي." },
+          { Icon: Search, bg: "var(--blue-soft)", color: "var(--blue)", title: "نراجع المعلومات", desc: "تتم مراجعة البلاغ قبل نشره." },
+          { Icon: MapIcon, bg: "var(--blue-soft)", color: "var(--blue)", title: "يظهر على الخريطة", desc: "يتم نشر التنبيه بعد التحقق منه." },
+        ].map(({ Icon, bg, color, title, desc }) => (
+          <div key={title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
+              <Icon size={22} />
+            </div>
+            <h3 className="font-bold mb-2">{title}</h3>
+            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{desc}</p>
           </div>
         ))}
       </div>
@@ -69,7 +72,9 @@ export default function ReportPage() {
 
         <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
           <div className="text-center mb-8">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl" style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)" }}>⚠️</div>
+            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B" }}>
+              <AlertTriangle size={28} />
+            </div>
             <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>بوت الإبلاغ</p>
             <h2 className="text-2xl md:text-3xl font-bold mb-4">افتح بوت الإبلاغ الرسمي</h2>
             <p className="leading-8 max-w-2xl mx-auto" style={{ color: "var(--text-secondary)" }}>
@@ -89,8 +94,10 @@ export default function ReportPage() {
               </div>
             </div>
             <a href="https://t.me/AlBayanReporterBot" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 transition rounded-2xl px-8 py-4 font-extrabold text-lg text-white">
-              ⚠ فتح بوت الإبلاغ
+              className="inline-flex items-center justify-center gap-3 transition rounded-2xl px-8 py-4 font-extrabold text-lg text-white"
+              style={{ background: "var(--accent)" }}>
+              <AlertTriangle size={20} />
+              فتح بوت الإبلاغ
             </a>
             <p className="text-sm mt-5 leading-7" style={{ color: "var(--text-secondary)" }}>
               الرجاء عدم إرسال بلاغات غير مؤكدة أو معلومات قد تسبب الذعر. نستخدم البلاغات فقط للمراجعة والمتابعة.
