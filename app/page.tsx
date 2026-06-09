@@ -144,9 +144,9 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const bg = popupColor(theme, "bg"), border = popupColor(theme, "border"), text = popupColor(theme, "text"), muted = popupColor(theme, "muted"), sub = popupColor(theme, "sub");
   const imgHtml = alert.image_url ? `<img src="${escapeHtml(alert.image_url)}" style="width:100%;border-radius:10px;margin-top:10px;max-height:130px;object-fit:cover;" />` : "";
   const rawUrl = `${SITE_URL}/?alert=${alert.id}`;
-  const headline = `‼️ #${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`;
-  const shareTextWA = encodeURIComponent(`${headline}\n\n🔗 التفاصيل الكاملة:\n${rawUrl}`);
-  const shareTextTG = encodeURIComponent(`${headline}\n\n🔗 التفاصيل الكاملة:\n${rawUrl}`);
+  const headline = `#${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`;
+  const shareTextWA = encodeURIComponent(`${headline}\n\nالتفاصيل الكاملة:\n${rawUrl}`);
+  const shareTextTG = encodeURIComponent(`${headline}\n\nالتفاصيل الكاملة:\n${rawUrl}`);
   const remainLabel = isAr ? "المدة المتبقية" : "Remaining";
   const noDesc = isAr ? "لا توجد تفاصيل إضافية." : "No additional details.";
   const copiedLabel = isAr ? "✓ تم" : "✓ Done";
