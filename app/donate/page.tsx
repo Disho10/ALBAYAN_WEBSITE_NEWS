@@ -110,7 +110,7 @@ export default function DonatePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <aside className="space-y-4 lg:sticky lg:top-6">
+        <aside className="space-y-4 lg:sticky lg:top-6 order-2 lg:order-1">
           <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
             <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "var(--accent)" }}>{c.whyTitle}</p>
             <div className="space-y-5">
@@ -140,7 +140,7 @@ export default function DonatePage() {
           </div>
         </aside>
 
-        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
+        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8 order-1 lg:order-2" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
           <div className="text-center mb-8">
             <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>{c.methodEyebrow}</p>
             <h2 className="text-2xl md:text-3xl font-bold mb-4">{c.methodH2}</h2>

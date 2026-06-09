@@ -54,6 +54,15 @@ const GLOBAL_STYLES = `
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #1E3350; border-radius: 2px; }
+  @media (max-width: 1024px) {
+    .adm-main-grid { grid-template-columns: 1fr !important; }
+    .adm-alerts-list { order: 1; }
+    .adm-create-form { order: 2; }
+    .adm-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+  @media (max-width: 480px) {
+    .adm-list-actions { flex-wrap: wrap; gap: 4px !important; }
+  }
 `;
 
 const inp = {
@@ -357,7 +366,7 @@ export default function AdminPage() {
         )}
 
         {/* ── Stats ──────────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "22px" }}>
+        <div className="adm-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "22px" }}>
           {([
             { label: "الأحداث النشطة", value: activeCount, color: "#22C55E", Icon: Activity },
             { label: "العاجلة", value: urgentCount, color: "#EF4444", Icon: Zap },
@@ -376,10 +385,10 @@ export default function AdminPage() {
         </div>
 
         {/* ── Main grid ──────────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "390px 1fr", gap: "18px", alignItems: "start" }}>
+        <div className="adm-main-grid" style={{ display: "grid", gridTemplateColumns: "390px 1fr", gap: "18px", alignItems: "start" }}>
 
           {/* ══ CREATE FORM ══════════════════════════════ */}
-          <div style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden" }}>
+          <div className="adm-create-form" style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden" }}>
             <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#E53935", boxShadow: "0 0 7px rgba(229,57,53,0.6)", display: "inline-block" }} />
               <h2 style={{ fontSize: "14px", fontWeight: 800, margin: 0 }}>حدث جديد</h2>
@@ -544,7 +553,7 @@ export default function AdminPage() {
           </div>
 
           {/* ══ ALERTS LIST ══════════════════════════════ */}
-          <div style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden" }}>
+          <div className="adm-alerts-list" style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden" }}>
             {/* List header */}
             <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -554,7 +563,7 @@ export default function AdminPage() {
                   <span style={{ background: "rgba(91,164,230,0.1)", border: "1px solid rgba(91,164,230,0.22)", borderRadius: "5px", padding: "2px 8px", fontSize: "11px", color: "#5BA4E6", fontWeight: 700 }}>{alerts.length}</span>
                 )}
               </div>
-              <div style={{ display: "flex", gap: "6px" }}>
+              <div className="adm-list-actions" style={{ display: "flex", gap: "6px" }}>
                 <button onClick={loadAlerts} className="adm-btn-ghost" style={{ display: "flex", alignItems: "center", gap: "5px", background: "transparent", border: "1px solid #1E3350", borderRadius: "8px", padding: "6px 12px", color: "#5A6B80", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
                   <RefreshCw size={11} />تحديث
                 </button>

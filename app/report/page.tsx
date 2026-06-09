@@ -109,7 +109,7 @@ export default function ReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <aside className="space-y-4 lg:sticky lg:top-6">
+        <aside className="space-y-4 lg:sticky lg:top-6 order-2 lg:order-1">
           <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
             <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "#F59E0B" }}>{c.infoTitle}</p>
             <div className="space-y-5">
@@ -142,7 +142,7 @@ export default function ReportPage() {
           </div>
         </aside>
 
-        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
+        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8 order-1 lg:order-2" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
           <div className="text-center mb-8">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B" }}>
               <AlertTriangle size={28} />
