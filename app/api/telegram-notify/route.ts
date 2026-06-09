@@ -22,24 +22,15 @@ export async function POST(req: NextRequest) {
 
     const results = [];
 
+    const cleanLabel = (s: string) => s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, "").trim();
+
     for (const alert of alerts) {
       const urgent = alert.is_urgent ? "🔴 عاجل\n\n" : "";
-      const desc = alert.description ? `\n📝 ${alert.description}` : "";
-      const now = new Date();
-      const date = now.toLocaleDateString("ar-LB", { day: "numeric", month: "long", year: "numeric" });
-      const time = now.toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit", hour12: true });
-
       const message = [
-        `${urgent}${alert.type_label}`,
-        `📍 ${alert.area}${desc}`,
+        `${urgent}‼️ #${cleanLabel(alert.type_label)} في بلدة #${alert.area}`,
         ``,
-        `⏱ المدة: ${alert.duration_text || "غير محدد"}`,
-        `📅 ${date} · ${time}`,
-        `🗺️ الخريطة المباشرة: ${SITE_URL}`,
-        `📢 تلغرام: ${TELEGRAM_CHANNEL}`,
-        `📱 واتساب: ${WHATSAPP_CHANNEL}`,
-        ``,
-        `#البيان #تنبيهات_لبنان`,
+        `🔗 التفاصيل الكاملة:`,
+        SITE_URL,
       ].join("\n");
 
       const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
