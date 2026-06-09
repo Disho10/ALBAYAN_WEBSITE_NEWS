@@ -12,73 +12,83 @@ type RegionEntry = { name: string; lat: number; lng: number; radius: number };
 // Keys use normSection() form (spaces removed, أ/إ/آ→ا, ة→ه, ى→ي)
 // Both the key lookup and the query are normalized so spacing variants match
 const SECTION_MAPPING: Record<string, RegionEntry> = {
-  // همفراتس = HaMifrats (Haifa Bay, coastal strip north of Haifa)
-  "همفراتس":          { name: "منطقة همفراتس",       lat: 32.84, lng: 35.06, radius: 11000 },
+  // ── NORTH — near Lebanese border (small radii so circles stay in Israel) ──
 
-  // Haifa city
-  "حيفا":             { name: "حيفا",                 lat: 32.80, lng: 34.99, radius:  8000 },
+  // همفراتس = HaMifrats (Haifa Bay coastal strip)
+  "همفراتس":           { name: "منطقة همفراتس",         lat: 32.84, lng: 35.06, radius: 5500 },
 
-  // Upper Galilee
-  "الجليلالاعلى":     { name: "الجليل الأعلى",        lat: 32.99, lng: 35.33, radius: 18000 },
+  // Upper Galilee — center pulled south of the border
+  "الجليلالاعلى":      { name: "الجليل الأعلى",          lat: 32.97, lng: 35.32, radius: 7000 },
 
   // Lower Galilee
-  "الجليلالاسفل":     { name: "الجليل الأسفل",        lat: 32.73, lng: 35.37, radius: 14000 },
+  "الجليلالاسفل":      { name: "الجليل الأسفل",          lat: 32.73, lng: 35.37, radius: 6000 },
 
   // Central Galilee
-  "مركزالجليل":       { name: "مركز الجليل",          lat: 32.87, lng: 35.27, radius: 18000 },
+  "مركزالجليل":        { name: "مركز الجليل",            lat: 32.87, lng: 35.27, radius: 7000 },
 
   // Western Galilee
-  "الجليلالغربي":     { name: "الجليل الغربي",        lat: 33.00, lng: 35.14, radius: 15000 },
+  "الجليلالغربي":      { name: "الجليل الغربي",          lat: 32.97, lng: 35.13, radius: 6000 },
 
-  // Northern Golan
-  "الجولانالشمالي":   { name: "الجولان الشمالي",      lat: 33.16, lng: 35.76, radius: 18000 },
+  // Confrontation line — right on the border, kept small
+  "خطالمواجهه":        { name: "خط المواجهة",            lat: 33.05, lng: 35.42, radius: 7000 },
 
-  // Southern Golan
-  "الجولانالجنوبي":   { name: "الجولان الجنوبي",      lat: 32.83, lng: 35.74, radius: 18000 },
+  // ── GOLAN ──
+  "الجولانالشمالي":    { name: "الجولان الشمالي",        lat: 33.08, lng: 35.76, radius: 7000 },
+  "الجولانالجنوبي":    { name: "الجولان الجنوبي",        lat: 32.83, lng: 35.74, radius: 7000 },
 
-  // Wadi Ara triangle
-  "واديعاره":         { name: "منطقة وادي عارة",      lat: 32.47, lng: 35.08, radius: 10000 },
+  // ── HAIFA METRO ──
+  "حيفا":              { name: "حيفا",                   lat: 32.80, lng: 34.99, radius: 4000 },
 
   // Carmel region (south of Haifa)
-  "الكرمل":           { name: "منطقة الكرمل",         lat: 32.71, lng: 34.97, radius: 12000 },
+  "الكرمل":            { name: "منطقة الكرمل",           lat: 32.71, lng: 34.97, radius: 5500 },
 
-  // Confrontation line (Lebanese border)
-  "خطالمواجهه":       { name: "خط المواجهة",          lat: 33.10, lng: 35.43, radius: 24000 },
+  // ── NORTHERN VALLEYS ──
+  "واديعاره":          { name: "منطقة وادي عارة",        lat: 32.47, lng: 35.08, radius: 5000 },
+  "العمقيم":           { name: "منطقة الأودية",          lat: 32.62, lng: 35.18, radius: 6000 },
+  "عمقيزرعيل":        { name: "وادي يزرعيل",            lat: 32.62, lng: 35.25, radius: 5500 },
+  "كينيريت":           { name: "منطقة كينيريت",          lat: 32.80, lng: 35.55, radius: 5000 },
+  "طبريا":             { name: "طبريا",                  lat: 32.80, lng: 35.53, radius: 3500 },
 
-  // Valleys (Jezreel / Beit She'an)
-  "العمقيم":          { name: "منطقة الأودية",        lat: 32.62, lng: 35.18, radius: 14000 },
-  "عمقيزرعيل":       { name: "وادي يزرعيل",          lat: 32.62, lng: 35.25, radius: 12000 },
+  // ── SHARON / CENTRAL COAST ──
+  "الشارون":           { name: "منطقة الشارون",          lat: 32.35, lng: 34.92, radius: 7000 },
+  "حدره":              { name: "منطقة حدرا",             lat: 32.43, lng: 34.92, radius: 4500 },
+  "نتانيا":            { name: "نتانيا",                 lat: 32.32, lng: 34.85, radius: 4000 },
 
-  // Sharon / Center coast
-  "الشارون":          { name: "منطقة الشارون",        lat: 32.35, lng: 34.92, radius: 15000 },
-  "مركزالبلاد":       { name: "وسط البلاد",           lat: 32.08, lng: 34.85, radius: 20000 },
-  "المركز":           { name: "وسط البلاد",           lat: 32.08, lng: 34.85, radius: 20000 },
+  // ── TEL AVIV METRO (גוש דן) ──
+  "تلابيب":            { name: "تل أبيب",                lat: 32.08, lng: 34.78, radius: 3500 },
+  "غوشدان":            { name: "منطقة غوش دان",          lat: 32.05, lng: 34.82, radius: 8000 },
+  "رمات‌غان":          { name: "رامات غان",              lat: 32.07, lng: 34.82, radius: 3000 },
+  "بتاحتكفا":          { name: "بتاح تكفا",              lat: 32.09, lng: 34.89, radius: 3500 },
+  "ريشونلتسيون":       { name: "ريشون لتسيون",           lat: 31.96, lng: 34.80, radius: 3500 },
+  "حولون":             { name: "حولون",                  lat: 32.01, lng: 34.77, radius: 3000 },
+  "باتيام":            { name: "بات يام",                lat: 32.01, lng: 34.75, radius: 3000 },
+  "المركز":            { name: "وسط البلاد",             lat: 32.08, lng: 34.85, radius: 9000 },
+  "مركزالبلاد":        { name: "وسط البلاد",             lat: 32.08, lng: 34.85, radius: 9000 },
 
-  // Hadera / Iron area
-  "حيفاوعكا":         { name: "منطقة حيفا وعكا",     lat: 32.86, lng: 35.03, radius: 14000 },
-  "حدره":             { name: "منطقة حدرا",           lat: 32.43, lng: 34.92, radius: 12000 },
+  // ── JERUSALEM ──
+  "القدس":             { name: "القدس",                  lat: 31.77, lng: 35.21, radius: 5000 },
+  "يهودا":             { name: "منطقة يهودا",            lat: 31.70, lng: 35.20, radius: 7000 },
+  "المشهدالشمالي":     { name: "القدس الشمالية",         lat: 31.82, lng: 35.19, radius: 4000 },
 
-  // South / Negev
-  "الجنوب":           { name: "منطقة الجنوب",         lat: 31.25, lng: 34.79, radius: 25000 },
-  "النقب":            { name: "النقب",                lat: 31.25, lng: 34.79, radius: 25000 },
+  // ── LOWLANDS / SHFELA ──
+  "الشفله":            { name: "منطقة الشفلة",           lat: 31.78, lng: 34.85, radius: 7000 },
+  "بيتشيمش":          { name: "بيت شيمش",               lat: 31.75, lng: 35.00, radius: 4000 },
+  "مودعين":            { name: "منطقة مودعين",           lat: 31.90, lng: 34.97, radius: 4500 },
 
-  // Gaza envelope
-  "غلافغزه":          { name: "غلاف غزة",             lat: 31.44, lng: 34.60, radius: 12000 },
+  // ── SOUTH COAST ──
+  "عسقلان":            { name: "عسقلان",                 lat: 31.67, lng: 34.57, radius: 4000 },
+  "اشدود":             { name: "أشدود",                  lat: 31.80, lng: 34.65, radius: 4000 },
 
-  // Jerusalem area
-  "القدس":            { name: "القدس",                lat: 31.77, lng: 35.21, radius: 12000 },
-  "يهودا":            { name: "منطقة يهودا",          lat: 31.70, lng: 35.20, radius: 15000 },
+  // ── GAZA ENVELOPE ──
+  "غلافغزه":           { name: "غلاف غزة",               lat: 31.44, lng: 34.60, radius: 6000 },
+  "اشكول":             { name: "منطقة إشكول",            lat: 31.30, lng: 34.50, radius: 5500 },
 
-  // Lowlands (Shfela)
-  "الشفله":           { name: "منطقة الشفلة",         lat: 31.78, lng: 34.85, radius: 15000 },
-
-  // Tiberias / Kinneret
-  "كينيريت":          { name: "منطقة كينيريت",        lat: 32.80, lng: 35.55, radius: 10000 },
-  "طبريا":            { name: "طبريا",                lat: 32.80, lng: 35.53, radius:  8000 },
-
-  // Ashkelon / Ashdod coast
-  "عسقلان":           { name: "عسقلان",               lat: 31.67, lng: 34.57, radius:  8000 },
-  "اشدود":            { name: "أشدود",                lat: 31.80, lng: 34.65, radius:  8000 },
+  // ── NEGEV / SOUTH ──
+  "الجنوب":            { name: "منطقة الجنوب",           lat: 31.25, lng: 34.79, radius: 12000 },
+  "النقب":             { name: "النقب",                  lat: 31.25, lng: 34.79, radius: 12000 },
+  "بيرالسبع":          { name: "بئر السبع",              lat: 31.25, lng: 34.79, radius: 5000 },
+  "ديمونا":            { name: "ديمونا",                 lat: 31.07, lng: 35.03, radius: 3500 },
+  "ايلات":             { name: "إيلات",                  lat: 29.56, lng: 34.95, radius: 4000 },
 };
 
 function normSection(s: string): string {
