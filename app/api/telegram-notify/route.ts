@@ -4,8 +4,6 @@ import { supabaseAdmin } from "@/app/lib/supabase-server";
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 const SITE_URL = "https://albayan-lb.com";
-const TELEGRAM_CHANNEL = "https://t.me/AlBayan_Newss";
-const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VbApl8OBlHpfDzyrrT0f";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,11 +21,19 @@ export async function POST(req: NextRequest) {
     const results = [];
 
     const cleanLabel = (s: string) => s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, "").trim();
+    const hashTag = (s: string) => cleanLabel(s).replace(/\s+/g, "_");
+    const CITIES = new Set([
+      "بيروت", "طرابلس", "صيدا", "صور", "زحلة", "بعلبك",
+      "بنت جبيل", "مرجعيون", "زغرتا", "جبيل", "بعبدا", "عاليه",
+      "جزين", "حلبا", "بشري", "الدامور", "القاع", "عنجر",
+      "بيت الدين", "جونيه", "بترون", "اهدن", "النبطية",
+    ]);
+    const placeWord = (area: string) => CITIES.has(area) ? "مدينة" : "بلدة";
 
     for (const alert of alerts) {
       const urgent = alert.is_urgent ? "🔴 عاجل\n\n" : "";
       const message = [
-        `${urgent}‼️ #${cleanLabel(alert.type_label)} في بلدة #${alert.area}`,
+        `${urgent}‼️ #${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`,
         ``,
         `🔗 التفاصيل الكاملة:`,
         SITE_URL,

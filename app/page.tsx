@@ -109,6 +109,15 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 function cleanLabel(label: string) { return label.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, "").trim(); }
+function hashTag(label: string) { return cleanLabel(label).replace(/\s+/g, "_"); }
+
+const LEBANESE_CITIES = new Set([
+  "بيروت", "طرابلس", "صيدا", "صور", "زحلة", "بعلبك",
+  "بنت جبيل", "مرجعيون", "زغرتا", "جبيل", "بعبدا", "عاليه",
+  "جزين", "حلبا", "بشري", "الدامور", "القاع", "عنجر",
+  "بيت الدين", "جونيه", "بترون", "اهدن", "النبطية",
+]);
+function placeWord(area: string) { return LEBANESE_CITIES.has(area) ? "مدينة" : "بلدة"; }
 
 const TYPE_LABELS_EN: Record<string, string> = {
   strike: "Strike", artillery: "Artillery", drone: "Drone Activity",
@@ -136,9 +145,9 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const imgHtml = alert.image_url ? `<img src="${escapeHtml(alert.image_url)}" style="width:100%;border-radius:10px;margin-top:10px;max-height:130px;object-fit:cover;" />` : "";
   const rawUrl = `${SITE_URL}/?alert=${alert.id}`;
   const shareUrl = encodeURIComponent(rawUrl);
-  const headline = `‼️ #${cleanLabel(alert.type_label)} في بلدة #${alert.area}`;
+  const headline = `‼️ #${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`;
   const shareTextWA = encodeURIComponent(`${headline}\n\n🔗 التفاصيل الكاملة:\n${rawUrl}`);
-  const shareTextTG = encodeURIComponent(headline);
+  const shareTextTG = encodeURIComponent(`${headline}\n\n🔗 التفاصيل الكاملة:`);
   const remainLabel = isAr ? "المدة المتبقية" : "Remaining";
   const noDesc = isAr ? "لا توجد تفاصيل إضافية." : "No additional details.";
   const copiedLabel = isAr ? "✓ تم" : "✓ Done";
