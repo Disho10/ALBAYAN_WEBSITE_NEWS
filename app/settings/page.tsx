@@ -196,7 +196,7 @@ function ToggleRow({ title, text, enabled, setEnabled }: { title: string; text: 
     <div className="flex items-center justify-between gap-4 rounded-xl p-4" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
       <div><h4 className="font-bold mb-1">{title}</h4><p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{text}</p></div>
       <button onClick={() => setEnabled(!enabled)} className="w-12 h-7 rounded-full p-0.5 transition flex-shrink-0" style={{ background: enabled ? "var(--accent)" : "var(--border)" }}>
-        <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow ${enabled ? "" : "translate-x-5"}`} />
+        <div className={`w-6 h-6 bg-white rounded-full transition-transform shadow ${enabled ? "translate-x-5" : ""}`} />
       </button>
     </div>
   );

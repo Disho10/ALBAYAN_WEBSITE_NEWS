@@ -80,7 +80,7 @@ export default function StatsPage() {
   return (
     <PageShell>
       <div className="mt-8 mb-10 text-center">
-        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>{t("statsTitle")}</p>
+        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>{lang === "ar" ? "الإحصائيات" : "Analytics"}</p>
         <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{t("statsTitle")}</h1>
         <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>{t("statsDesc")}</p>
       </div>

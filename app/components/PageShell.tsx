@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sun, Moon, ArrowRight, ArrowLeft, Globe } from "lucide-react";
+import { Sun, Moon, ArrowRight, ArrowLeft } from "lucide-react";
 import { useApp } from "@/app/components/ThemeProvider";
 import type { ReactNode } from "react";
 

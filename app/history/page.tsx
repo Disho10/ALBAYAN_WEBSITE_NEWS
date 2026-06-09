@@ -51,7 +51,7 @@ export default function HistoryPage() {
   return (
     <PageShell>
       <div className="mt-8 mb-10 text-center">
-        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>{t("historyTitle")}</p>
+        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>{lang === "ar" ? "الأرشيف" : "Archive"}</p>
         <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{t("historyTitle")}</h1>
         <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>{t("historyDesc")}</p>
       </div>
@@ -87,7 +87,7 @@ export default function HistoryPage() {
             const isExpired = alert.expires_at && alert.expires_at < new Date().toISOString();
             return (
               <div key={alert.id} className="rounded-xl p-4 relative overflow-hidden transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", opacity: isExpired ? 0.6 : 1 }}>
-                <div className="absolute top-0 right-0 bottom-0 w-[3px]" style={{ backgroundColor: color, borderRadius: lang === "ar" ? "0 8px 8px 0" : "8px 0 0 8px" }} />
+                <div className={`absolute top-0 ${lang === "ar" ? "right-0" : "left-0"} bottom-0 w-[3px]`} style={{ backgroundColor: color, borderRadius: lang === "ar" ? "0 8px 8px 0" : "8px 0 0 8px" }} />
                 <div className={lang === "ar" ? "pr-3" : "pl-3"}>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-xs font-bold" style={{ color }}>{cleanLabel(alert.type_label)}</span>
