@@ -67,7 +67,7 @@ function getTimeAgo(createdAt?: string, isAr = true) {
 function matchesFilter(a: AlertItem, f: string) {
   if (f === "all") return true;
   if (f === "strikes") return a.type === "strike" || a.type === "artillery";
-  if (f === "siren") return a.type === "siren" || a.type === "siren_missile" || a.type === "siren_drone";
+  if (f === "siren") return a.type === "siren" || a.type === "siren_missile" || a.type === "siren_drone" || a.type === "red_alert";
   return a.type === f;
 }
 
@@ -105,7 +105,7 @@ const TYPE_COLORS: Record<string, string> = {
   strike: "#EF4444", artillery: "#DC2626", drone: "#5BA4E6", threat: "#F59E0B",
   enemy_position: "#A855F7", army_position: "#22C55E", traffic: "#38BDF8",
   crowd: "#DC2626", fire: "#F97316", injuries: "#E11D48",
-  siren: "#E53935", siren_missile: "#E53935", siren_drone: "#E53935",
+  siren: "#E53935", siren_missile: "#E53935", siren_drone: "#E53935", red_alert: "#EF4444",
 };
 
 function cleanLabel(label: string) { return label.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, "").trim(); }
@@ -123,7 +123,7 @@ const TYPE_LABELS_EN: Record<string, string> = {
   strike: "Strike", artillery: "Artillery", drone: "Drone Activity",
   threat: "Threat", enemy_position: "Enemy Position", army_position: "Army Deployment",
   traffic: "Accident", crowd: "Clashes", fire: "Fire", injuries: "Injuries",
-  siren: "Siren", siren_missile: "Missile Siren", siren_drone: "Drone Siren",
+  siren: "Siren", siren_missile: "Missile Siren", siren_drone: "Drone Siren", red_alert: "Red Alert",
 };
 
 function popupColor(theme: string, key: "bg" | "border" | "text" | "muted" | "sub") {
@@ -260,7 +260,7 @@ export default function Home() {
     [alerts, activeFilter, timeFilter]
   );
   const urgentAlerts = useMemo(() => alerts.filter((a) => a.is_urgent), [alerts]);
-  const sirenCount = useMemo(() => alerts.filter((a) => a.type?.startsWith("siren")).length, [alerts]);
+  const sirenCount = useMemo(() => alerts.filter((a) => a.type?.startsWith("siren") || a.type === "red_alert").length, [alerts]);
 
   useEffect(() => { setUserSettings(loadSettings()); }, []);
   useEffect(() => {
@@ -443,7 +443,7 @@ export default function Home() {
     /* Non-strike alerts first so area fills sit below strike dots */
     visibleAlerts.filter((a) => a.type !== "strike" && a.type !== "artillery").forEach((alert) => {
       const isAreaHighlight = alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position";
-      const isSiren = alert.type?.startsWith("siren");
+      const isSiren = alert.type?.startsWith("siren") || alert.type === "red_alert";
 
       if (isSiren) {
         const srcId = `siren-src-${alert.id}`, fillId = `siren-fill-${alert.id}`, lineId = `siren-line-${alert.id}`;
