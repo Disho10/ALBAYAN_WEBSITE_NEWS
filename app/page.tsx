@@ -510,7 +510,11 @@ export default function Home() {
         map.addLayer({ id: fId, type: "fill", source: "admin3", paint: { "fill-color": color, "fill-opacity": 0.35 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
         map.addLayer({ id: lId, type: "line", source: "admin3", paint: { "line-color": color, "line-width": 2 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
         activeLayerIdsRef.current.push(fId, lId);
-        const ch = (ev: any) => showAlertPopup(alert, ev.lngLat);
+        const ch = (ev: any) => {
+          // Don't override a strike/artillery click that fired just before this handler
+          if (map.queryRenderedFeatures(ev.point, { layers: ["strike-unclustered"] }).length > 0) return;
+          showAlertPopup(alert, ev.lngLat);
+        };
         map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
         return;
       }
