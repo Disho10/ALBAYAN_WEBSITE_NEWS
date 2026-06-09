@@ -525,6 +525,14 @@ export default function Home() {
       const ch = (ev: any) => showAlertPopup(alert, ev.lngLat);
       map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
     });
+
+    // Area highlight fills are added after strike layers, so move strikes back on top
+    // to keep them clickable even when a threat polygon covers the same location.
+    if (map.getLayer("strike-unclustered")) {
+      map.moveLayer("strike-clusters");
+      map.moveLayer("strike-cluster-count");
+      map.moveLayer("strike-unclustered");
+    }
   }, [visibleAlerts, mapReady, userSettings.highlightAreas, theme, lang]);
 
   /* ── Preferred area auto-center on first load ──────── */
