@@ -448,9 +448,10 @@ export default function Home() {
       if (isSiren) {
         const srcId = `siren-src-${alert.id}`, fillId = `siren-fill-${alert.id}`, lineId = `siren-line-${alert.id}`;
         if (map.getSource(srcId)) return; // already rendered
-        const circle = createCircleGeoJSON(alert.lng, alert.lat, alert.radius || 3000);
+        const sirenRadius = Math.min(alert.radius || 3000, 3500); // cap at 3.5km
+        const circle = createCircleGeoJSON(alert.lng, alert.lat, sirenRadius);
         map.addSource(srcId, { type: "geojson", data: circle as any }); activeSourceIdsRef.current.push(srcId);
-        map.addLayer({ id: fillId, type: "fill", source: srcId, paint: { "fill-color": "#E53935", "fill-opacity": 0.25 } });
+        map.addLayer({ id: fillId, type: "fill", source: srcId, paint: { "fill-color": "#E53935", "fill-opacity": 0.15 } });
         map.addLayer({ id: lineId, type: "line", source: srcId, paint: { "line-color": "#E53935", "line-width": 1.5, "line-dasharray": [4, 2] } });
         activeLayerIdsRef.current.push(fillId, lineId);
         const el = document.createElement("div"); el.className = "siren-marker";
