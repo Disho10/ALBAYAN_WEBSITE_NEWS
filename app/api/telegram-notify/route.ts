@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     const placeWord = (area: string) => CITIES.has(area) ? "مدينة" : "بلدة";
 
     for (const alert of alerts) {
-      const urgent = alert.is_urgent ? "🔴 عاجل\n\n" : "";
+      const urgent = alert.is_urgent ? "عاجل\n\n" : "";
       const message = [
-        `${urgent}‼️ #${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`,
+        `${urgent}#${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`,
         ``,
-        `🔗 التفاصيل الكاملة:`,
+        `التفاصيل الكاملة:`,
         SITE_URL,
       ].join("\n");
 
