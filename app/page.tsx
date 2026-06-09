@@ -503,27 +503,33 @@ export default function Home() {
       }
 
       if (isAreaHighlight && userSettings.highlightAreas) {
-        const fId = `area-${alert.id}`, lId = `area-line-${alert.id}`;
-        if (map.getLayer(fId)) return; // already rendered
-        const color = alert.type === "threat" ? "#F59E0B" : alert.type === "enemy_position" ? "#A855F7" : "#22C55E";
-        map.addLayer({ id: fId, type: "fill", source: "admin3", paint: { "fill-color": color, "fill-opacity": 0.35 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
-        map.addLayer({ id: lId, type: "line", source: "admin3", paint: { "line-color": color, "line-width": 2 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
-        activeLayerIdsRef.current.push(fId, lId);
-        const ch = (ev: any) => {
-          // Don't override a strike/artillery click that fired just before this handler
-          if (map.queryRenderedFeatures(ev.point, { layers: ["strike-unclustered"] }).length > 0) return;
-          showAlertPopup(alert, ev.lngLat);
-        };
-        map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
-        return;
+        const admin3Data = geoCache.current.admin3;
+        const areaInAdmin3 = admin3Data?.features?.some((f: any) => f.properties?.adm3_name1 === alert.area);
+        if (areaInAdmin3) {
+          const fId = `area-${alert.id}`, lId = `area-line-${alert.id}`;
+          if (map.getLayer(fId)) return; // already rendered
+          const color = alert.type === "threat" ? "#F59E0B" : alert.type === "enemy_position" ? "#A855F7" : "#22C55E";
+          map.addLayer({ id: fId, type: "fill", source: "admin3", paint: { "fill-color": color, "fill-opacity": 0.35 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
+          map.addLayer({ id: lId, type: "line", source: "admin3", paint: { "line-color": color, "line-width": 2 }, filter: ["==", ["get", "adm3_name1"], alert.area] });
+          activeLayerIdsRef.current.push(fId, lId);
+          const ch = (ev: any) => {
+            if (map.queryRenderedFeatures(ev.point, { layers: ["strike-unclustered"] }).length > 0) return;
+            showAlertPopup(alert, ev.lngLat);
+          };
+          map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
+          return;
+        }
+        // Area not in admin3 — fall through to draw a coordinate-based circle
       }
 
       const srcId = `src-${alert.id}`, fId = `fill-${alert.id}`, lId = `line-${alert.id}`;
       if (map.getSource(srcId)) return; // already rendered
+      const isHighlightFallback = isAreaHighlight && userSettings.highlightAreas;
+      const circleColor = alert.color || "#5BA4E6";
       const circle = createCircleGeoJSON(alert.lng, alert.lat, alert.radius || 800);
       map.addSource(srcId, { type: "geojson", data: circle as any }); activeSourceIdsRef.current.push(srcId);
-      map.addLayer({ id: fId, type: "fill", source: srcId, paint: { "fill-color": alert.color || "#5BA4E6", "fill-opacity": 0.2 } });
-      map.addLayer({ id: lId, type: "line", source: srcId, paint: { "line-color": alert.color || "#5BA4E6", "line-width": 1.5 } });
+      map.addLayer({ id: fId, type: "fill", source: srcId, paint: { "fill-color": circleColor, "fill-opacity": isHighlightFallback ? 0.35 : 0.2 } });
+      map.addLayer({ id: lId, type: "line", source: srcId, paint: { "line-color": circleColor, "line-width": isHighlightFallback ? 2 : 1.5 } });
       activeLayerIdsRef.current.push(fId, lId);
       const ch = (ev: any) => showAlertPopup(alert, ev.lngLat);
       map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));

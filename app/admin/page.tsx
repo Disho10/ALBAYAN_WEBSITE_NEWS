@@ -35,6 +35,10 @@ export default function AdminPage() {
   const [areaSearch, setAreaSearch] = useState("");
   const [showAreaSuggestions, setShowAreaSuggestions] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState<Area[]>([]);
+  const [useCoords, setUseCoords] = useState(false);
+  const [coordLat, setCoordLat] = useState("");
+  const [coordLng, setCoordLng] = useState("");
+  const [coordName, setCoordName] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("180");
   const [radius, setRadius] = useState("900");
@@ -147,6 +151,10 @@ export default function AdminPage() {
     setDuration("180");
     setRadius(String(selectedType.radius));
     setIsUrgent(false);
+    setUseCoords(false);
+    setCoordLat("");
+    setCoordLng("");
+    setCoordName("");
   }
 
   function getDurationText(minutes: string) {
@@ -155,7 +163,13 @@ export default function AdminPage() {
   }
 
   async function publishAlert() {
-    if (selectedAreas.length === 0) {
+    if (useCoords) {
+      const lat = parseFloat(coordLat), lng = parseFloat(coordLng);
+      if (!coordName.trim() || isNaN(lat) || isNaN(lng)) {
+        setStatusMsg({ text: "يرجى إدخال اسم الموقع والإحداثيات", ok: false });
+        return;
+      }
+    } else if (selectedAreas.length === 0) {
       setStatusMsg({ text: "يرجى اختيار بلدة واحدة على الأقل", ok: false });
       return;
     }
@@ -168,20 +182,35 @@ export default function AdminPage() {
         ? null
         : new Date(Date.now() + Number(duration) * 60000).toISOString();
 
-    const rows = selectedAreas.map((area) => ({
-      title: selectedType.label,
-      area: area.name,
-      type: selectedType.type,
-      type_label: selectedType.label,
-      color: selectedType.color,
-      description,
-      lat: area.lat,
-      lng: area.lng,
-      radius: Number(radius) || selectedType.radius,
-      expires_at,
-      status: "active",
-      is_urgent: isUrgent,
-    }));
+    const rows = useCoords
+      ? [{
+          title: selectedType.label,
+          area: coordName.trim(),
+          type: selectedType.type,
+          type_label: selectedType.label,
+          color: selectedType.color,
+          description,
+          lat: parseFloat(coordLat),
+          lng: parseFloat(coordLng),
+          radius: Number(radius) || selectedType.radius,
+          expires_at,
+          status: "active",
+          is_urgent: isUrgent,
+        }]
+      : selectedAreas.map((area) => ({
+          title: selectedType.label,
+          area: area.name,
+          type: selectedType.type,
+          type_label: selectedType.label,
+          color: selectedType.color,
+          description,
+          lat: area.lat,
+          lng: area.lng,
+          radius: Number(radius) || selectedType.radius,
+          expires_at,
+          status: "active",
+          is_urgent: isUrgent,
+        }));
 
     const { error } = await supabase.from("alerts").insert(rows);
 
@@ -410,33 +439,83 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-2">
-                  البلدات {selectedAreas.length > 0 && <span className="text-[var(--accent)]">({selectedAreas.length})</span>}
-                </label>
-                {selectedAreas.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedAreas.map((a) => (
-                      <span key={a.pcode} className="flex items-center gap-1 bg-[var(--accent)]/20 border border-[var(--blue)]/40 text-[var(--blue)] rounded-lg px-3 py-1.5 text-sm font-bold">
-                        {a.name}
-                        <button onClick={() => removeArea(a.pcode)} className="hover:text-red-400 transition text-lg mr-1">&times;</button>
-                      </span>
-                    ))}
-                    <button onClick={() => setSelectedAreas([])} className="text-red-400 text-xs font-bold px-2 py-1 rounded-lg border border-red-400/30 hover:bg-red-400/10 transition">مسح</button>
+                <div className="flex rounded-xl overflow-hidden border border-[var(--border)] mb-3">
+                  <button type="button" onClick={() => setUseCoords(false)}
+                    className={`flex-1 py-2 text-sm font-bold transition ${!useCoords ? "bg-[var(--accent)] text-white" : "bg-[var(--bg-card)] text-[var(--text-secondary)]"}`}>
+                    بحث بالاسم
+                  </button>
+                  <button type="button" onClick={() => setUseCoords(true)}
+                    className={`flex-1 py-2 text-sm font-bold transition ${useCoords ? "bg-[var(--accent)] text-white" : "bg-[var(--bg-card)] text-[var(--text-secondary)]"}`}>
+                    إحداثيات
+                  </button>
+                </div>
+                {!useCoords ? (
+                  <>
+                    <label className="block text-sm text-[var(--text-secondary)] mb-2">
+                      البلدات {selectedAreas.length > 0 && <span className="text-[var(--accent)]">({selectedAreas.length})</span>}
+                    </label>
+                    {selectedAreas.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {selectedAreas.map((a) => (
+                          <span key={a.pcode} className="flex items-center gap-1 bg-[var(--accent)]/20 border border-[var(--blue)]/40 text-[var(--blue)] rounded-lg px-3 py-1.5 text-sm font-bold">
+                            {a.name}
+                            <button onClick={() => removeArea(a.pcode)} className="hover:text-red-400 transition text-lg mr-1">&times;</button>
+                          </span>
+                        ))}
+                        <button onClick={() => setSelectedAreas([])} className="text-red-400 text-xs font-bold px-2 py-1 rounded-lg border border-red-400/30 hover:bg-red-400/10 transition">مسح</button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <input type="text" value={areaSearch} placeholder="ابحث عن بلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => { if (areaSearch) setShowAreaSuggestions(true); }} onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 200)} className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--blue)]" />
+                      {showAreaSuggestions && filteredAreas.length > 0 && (
+                        <div className="absolute z-50 mt-2 w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl max-h-64 overflow-y-auto shadow-xl">
+                          {filteredAreas.map((item, i) => (
+                            <button key={item.pcode || `a-${i}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => addArea(item)} className="w-full text-right px-4 py-3 hover:bg-[var(--bg-elevated)] transition border-b border-white/5">
+                              <span className="font-bold">{item.name}</span>
+                              <span className="text-[var(--text-secondary)] text-sm mr-2">— {item.district}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="اسم الموقع (مثال: منطقة الزهراني)"
+                      value={coordName}
+                      onChange={(e) => setCoordName(e.target.value)}
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--blue)]"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-[var(--text-secondary)] mb-1">خط العرض (Lat)</label>
+                        <input
+                          type="number"
+                          placeholder="33.2785"
+                          value={coordLat}
+                          onChange={(e) => setCoordLat(e.target.value)}
+                          className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--blue)]"
+                          dir="ltr"
+                          step="any"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[var(--text-secondary)] mb-1">خط الطول (Lng)</label>
+                        <input
+                          type="number"
+                          placeholder="35.2037"
+                          value={coordLng}
+                          onChange={(e) => setCoordLng(e.target.value)}
+                          className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--blue)]"
+                          dir="ltr"
+                          step="any"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
-                <div className="relative">
-                  <input type="text" value={areaSearch} placeholder="ابحث عن بلدة..." onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }} onFocus={() => { if (areaSearch) setShowAreaSuggestions(true); }} onBlur={() => setTimeout(() => setShowAreaSuggestions(false), 200)} className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-4 py-3 outline-none focus:border-[var(--blue)]" />
-                  {showAreaSuggestions && filteredAreas.length > 0 && (
-                    <div className="absolute z-50 mt-2 w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl max-h-64 overflow-y-auto shadow-xl">
-                      {filteredAreas.map((item, i) => (
-                        <button key={item.pcode || `a-${i}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => addArea(item)} className="w-full text-right px-4 py-3 hover:bg-[var(--bg-elevated)] transition border-b border-white/5">
-                          <span className="font-bold">{item.name}</span>
-                          <span className="text-[var(--text-secondary)] text-sm mr-2">— {item.district}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -467,8 +546,8 @@ export default function AdminPage() {
                 <span className="font-bold">نشر تلقائي على تلغرام</span>
               </label>
 
-              <button onClick={publishAlert} disabled={publishing || selectedAreas.length === 0} className={`w-full transition rounded-xl px-5 py-4 font-extrabold text-lg ${publishing || selectedAreas.length === 0 ? "bg-slate-600 cursor-not-allowed" : "bg-[var(--accent)] hover:bg-[var(--accent-hover)]"}`}>
-                {publishing ? "جاري النشر..." : selectedAreas.length === 0 ? "اختر بلدة" : `نشر ${selectedAreas.length > 1 ? selectedAreas.length + " أحداث" : "الحدث"}`}
+              <button onClick={publishAlert} disabled={publishing || (!useCoords && selectedAreas.length === 0) || (useCoords && (!coordName.trim() || !coordLat || !coordLng))} className={`w-full transition rounded-xl px-5 py-4 font-extrabold text-lg ${publishing || (!useCoords && selectedAreas.length === 0) || (useCoords && (!coordName.trim() || !coordLat || !coordLng)) ? "bg-slate-600 cursor-not-allowed" : "bg-[var(--accent)] hover:bg-[var(--accent-hover)]"}`}>
+                {publishing ? "جاري النشر..." : useCoords ? (!coordName.trim() || !coordLat || !coordLng ? "أدخل الإحداثيات" : "نشر الحدث") : (selectedAreas.length === 0 ? "اختر بلدة" : `نشر ${selectedAreas.length > 1 ? selectedAreas.length + " أحداث" : "الحدث"}`)}
               </button>
             </div>
           </div>
