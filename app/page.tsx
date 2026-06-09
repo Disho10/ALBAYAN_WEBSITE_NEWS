@@ -221,7 +221,7 @@ export default function Home() {
   const cleanupHandlersRef = useRef<(() => void)[]>([]);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const prevAlertIdsRef = useRef<Set<number>>(new Set());
-  const geoCache = useRef<{ admin3?: any; israel?: any }>({});
+  const geoCache = useRef<{ admin3?: any }>({});
 
   /* State */
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -355,10 +355,6 @@ export default function Home() {
     try {
       if (!geoCache.current.admin3) { const r = await fetch("/data/lbn_admin3.geojson"); if (r.ok) geoCache.current.admin3 = await r.json(); }
       if (geoCache.current.admin3 && !map.getSource("admin3")) map.addSource("admin3", { type: "geojson", data: geoCache.current.admin3 });
-    } catch {}
-    try {
-      if (!geoCache.current.israel) { const r = await fetch("/data/israel_areas.geojson"); if (r.ok) geoCache.current.israel = await r.json(); }
-      if (geoCache.current.israel && !map.getSource("israel-areas")) map.addSource("israel-areas", { type: "geojson", data: geoCache.current.israel });
     } catch {}
   }
 

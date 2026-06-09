@@ -124,32 +124,65 @@ function findSection(rawName: string): RegionEntry | null {
 
 /* ─── Israeli area mapping for older siren message formats ─── */
 const AREA_MAPPING: Record<string, { name: string; lat: number; lng: number }> = {
+  // Border settlements — with Red Alert Arabic spelling variants
   "المطلة":        { name: "المطلة",         lat: 33.2778, lng: 35.5731 },
   "مطولا":         { name: "المطلة",         lat: 33.2778, lng: 35.5731 },
+  "متولا":         { name: "المطلة",         lat: 33.2778, lng: 35.5731 },
   "كريات شمونة":   { name: "كريات شمونة",    lat: 33.2073, lng: 35.5713 },
   "كريات شمونا":   { name: "كريات شمونة",    lat: 33.2073, lng: 35.5713 },
+  "كريات شمونه":   { name: "كريات شمونة",    lat: 33.2073, lng: 35.5713 },
   "نهاريا":        { name: "نهاريا",         lat: 33.0061, lng: 35.0986 },
   "نهريا":         { name: "نهاريا",         lat: 33.0061, lng: 35.0986 },
   "شلومي":         { name: "شلومي",          lat: 33.0747, lng: 35.1417 },
   "مسغاف عام":     { name: "مسغاف عام",      lat: 33.0797, lng: 35.5244 },
+  "مسجاف عام":     { name: "مسغاف عام",      lat: 33.0797, lng: 35.5244 },
   "أفيفيم":        { name: "أفيفيم",         lat: 33.0547, lng: 35.4022 },
+  "افيفيم":        { name: "أفيفيم",         lat: 33.0547, lng: 35.4022 },
   "دوفيف":         { name: "دوفيف",          lat: 33.0631, lng: 35.4214 },
+  "دوفب":          { name: "دوفيف",          lat: 33.0631, lng: 35.4214 },
   "يفتاح":         { name: "يفتاح",          lat: 33.1192, lng: 35.5008 },
+  "يفتح":          { name: "يفتاح",          lat: 33.1192, lng: 35.5008 },
   "مرغليوت":       { name: "مرغليوت",        lat: 33.2389, lng: 35.5589 },
+  "مرجليوت":       { name: "مرغليوت",        lat: 33.2389, lng: 35.5589 },
   "المنارة":       { name: "المنارة",        lat: 33.2325, lng: 35.5261 },
   "حنيتا":         { name: "حنيتا",          lat: 33.1028, lng: 35.1994 },
+  "كفار جلعادي":   { name: "كفار جلعادي",    lat: 33.2428, lng: 35.5683 },
+  "كفر جلعادي":    { name: "كفار جلعادي",    lat: 33.2428, lng: 35.5683 },
+  "كفار غلعادي":   { name: "كفار جلعادي",    lat: 33.2428, lng: 35.5683 },
+  "سديه نحميا":    { name: "سديه نحميا",     lat: 33.2394, lng: 35.5592 },
+  "تل حاي":        { name: "تل حاي",         lat: 33.2347, lng: 35.5689 },
+  "دفنا":          { name: "دفنا",           lat: 33.2267, lng: 35.64 },
+  "دان":           { name: "دان",            lat: 33.2492, lng: 35.6519 },
+  "هغوشريم":       { name: "هغوشريم",        lat: 33.2261, lng: 35.6156 },
+  "شتولا":         { name: "شتولا",          lat: 33.0775, lng: 35.2075 },
+  "زرعيت":         { name: "زرعيت",          lat: 33.0822, lng: 35.1497 },
+  "ملكية":         { name: "ملكية",          lat: 33.0858, lng: 35.4672 },
+  "ملخيا":         { name: "ملكية",          lat: 33.0858, lng: 35.4672 },
+  "يرعون":         { name: "يرعون",          lat: 33.0789, lng: 35.4456 },
+  "ديشون":         { name: "ديشون",          lat: 33.0978, lng: 35.4494 },
+  "راموت نفتالي":  { name: "راموت نفتالي",   lat: 33.1025, lng: 35.5061 },
+  "بتسيت":         { name: "بتسيت",          lat: 33.0531, lng: 35.1608 },
+  // Northern cities
   "عكا":           { name: "عكا",            lat: 32.9280, lng: 35.0764 },
   "صفد":           { name: "صفد",            lat: 32.9646, lng: 35.4964 },
   "حيفا":          { name: "حيفا",           lat: 32.7940, lng: 34.9896 },
   "كرمئيل":        { name: "كرمئيل",         lat: 32.9138, lng: 35.2971 },
+  "كرميئيل":       { name: "كرمئيل",         lat: 32.9138, lng: 35.2971 },
   "الناصرة":       { name: "الناصرة",        lat: 32.6996, lng: 35.3035 },
   "طبريا":         { name: "طبريا",          lat: 32.7957, lng: 35.5302 },
+  "طبرية":         { name: "طبريا",          lat: 32.7957, lng: 35.5302 },
   "الجولان":       { name: "الجولان",        lat: 33.0000, lng: 35.7700 },
   "الجليل":        { name: "الجليل",         lat: 32.9000, lng: 35.3000 },
+  "معالوت":        { name: "معالوت",         lat: 33.0167, lng: 35.2719 },
+  "كتسرين":        { name: "كتسرين",         lat: 32.9925, lng: 35.6917 },
+  "قتسرين":        { name: "كتسرين",         lat: 32.9925, lng: 35.6917 },
+  // Central/South
   "تل أبيب":       { name: "تل أبيب",        lat: 32.0853, lng: 34.7818 },
+  "تل ابيب":       { name: "تل أبيب",        lat: 32.0853, lng: 34.7818 },
   "القدس":         { name: "القدس",          lat: 31.7683, lng: 35.2137 },
   "بئر السبع":     { name: "بئر السبع",      lat: 31.2518, lng: 34.7913 },
   "أشدود":         { name: "أشدود",          lat: 31.8044, lng: 34.6553 },
+  "اشدود":         { name: "أشدود",          lat: 31.8044, lng: 34.6553 },
   "عسقلان":        { name: "عسقلان",         lat: 31.6680, lng: 34.5710 },
   "نتانيا":        { name: "نتانيا",         lat: 32.3215, lng: 34.8532 },
   "حدرا":          { name: "حدرا",           lat: 32.4342, lng: 34.9199 },
@@ -325,38 +358,43 @@ export async function POST(req: NextRequest) {
 
       if (sections.length > 0) {
         const rows: object[] = [];
-        const sectionNames: string[] = [];
+        const alertNames: string[] = [];
         const unmatched: string[] = [];
 
         for (const { section, cities, shelter } of sections) {
-          const region = findSection(section);
-          if (!region) { unmatched.push(section); continue; }
-
-          const cityList = cities.length <= 8
-            ? cities.join("، ")
-            : cities.slice(0, 8).join("، ") + `... (${cities.length} موقع)`;
+          const sectionRegion = findSection(section);
           const shelterNote = shelter ? ` — وقت الاحتماء: ${shelter}` : "";
-          const desc = `🔴 صافرات إنذار في ${region.name}: ${cityList}.${shelterNote}`;
 
-          rows.push({
-            title: "🔴 صافرات إنذار",
-            area: region.name,
-            type: "red_alert",
-            type_label: "🔴 صافرات إنذار",
-            color: "#EF4444",
-            description: desc,
-            lat: region.lat,
-            lng: region.lng,
-            radius: region.radius,
-            expires_at: new Date(Date.now() + 10 * 60000).toISOString(),
-            status: "active",
-            is_urgent: true,
-          });
-          sectionNames.push(region.name);
+          // Create individual alert per city, not per section
+          for (const city of cities) {
+            // Try to find city in AREA_MAPPING first (exact coordinates)
+            const cityArea = findIsraeliArea(city);
+            const coords = cityArea || sectionRegion;
+            if (!coords) { unmatched.push(city); continue; }
+
+            const areaName = cityArea ? cityArea.name : city;
+            if (alertNames.includes(areaName)) continue; // skip duplicates
+
+            rows.push({
+              title: "🔴 صافرات إنذار",
+              area: areaName,
+              type: "red_alert",
+              type_label: "🔴 صافرات إنذار",
+              color: "#EF4444",
+              description: `🔴 صافرات إنذار — ${areaName}.${shelterNote}`,
+              lat: coords.lat,
+              lng: coords.lng,
+              radius: 3000,
+              expires_at: new Date(Date.now() + 10 * 60000).toISOString(),
+              status: "active",
+              is_urgent: true,
+            });
+            alertNames.push(areaName);
+          }
         }
 
         if (rows.length === 0) {
-          return NextResponse.json({ ok: true, skipped: true, reason: "no sections matched", tried: sections.map(s => s.section) });
+          return NextResponse.json({ ok: true, skipped: true, reason: "no cities matched", tried: sections.map(s => s.cities).flat() });
         }
 
         const { data: inserted, error } = await supabaseAdmin.from("alerts").insert(rows).select("id");
@@ -367,7 +405,7 @@ export async function POST(req: NextRequest) {
           const channelMsg = [
             `🔴 صافرات إنذار — اللون الأحمر 🔴`,
             ``,
-            `📍 ${sectionNames.join("، ")}`,
+            `📍 ${alertNames.join("، ")}`,
             ``,
             `📅 ${new Date().toLocaleDateString("ar-LB", { day: "numeric", month: "long", year: "numeric" })}`,
             `🗺️ الخريطة المباشرة: ${SITE_URL}/?alert=${firstId}`,
@@ -383,7 +421,7 @@ export async function POST(req: NextRequest) {
           }).catch(() => {});
         }
 
-        return NextResponse.json({ ok: true, action: "red_alert", created: rows.length, sections: sectionNames, unmatched });
+        return NextResponse.json({ ok: true, action: "red_alert", created: rows.length, areas: alertNames, unmatched });
       }
       // If sections.length === 0, fall through to generic siren detection
     }
