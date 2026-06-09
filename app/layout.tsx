@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import ThemeProvider from "@/app/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const dubai = localFont({
   src: [
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={dubai.className}>
         <ThemeProvider>{children}</ThemeProvider>
+        <Analytics />  
       </body>
     </html>
   );

@@ -440,45 +440,7 @@ export default function Home() {
     activeLayerIdsRef.current.forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); }); activeLayerIdsRef.current = [];
     activeSourceIdsRef.current.forEach((id) => { if (map.getSource(id)) map.removeSource(id); }); activeSourceIdsRef.current = [];
 
-    /* Clustered source for strikes */
-    const strikeAlerts = visibleAlerts.filter((a) => a.type === "strike" || a.type === "artillery");
-    if (strikeAlerts.length > 0) {
-      const fc = { type: "FeatureCollection", features: strikeAlerts.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
-      if (!map.getSource("strikes-cluster")) {
-        map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 });
-        activeSourceIdsRef.current.push("strikes-cluster");
-      } else {
-        (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).setData(fc as any);
-      }
-      if (!map.getLayer("strike-clusters")) {
-        map.addLayer({ id: "strike-clusters", type: "circle", source: "strikes-cluster", filter: ["has", "point_count"],
-          paint: { "circle-color": "#EF4444", "circle-radius": ["step", ["get", "point_count"], 16, 5, 22, 10, 28], "circle-opacity": 0.85, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.8)" } });
-        map.addLayer({ id: "strike-cluster-count", type: "symbol", source: "strikes-cluster", filter: ["has", "point_count"],
-          layout: { "text-field": "{point_count_abbreviated}", "text-size": 11 }, paint: { "text-color": "#ffffff" } });
-        map.addLayer({ id: "strike-unclustered", type: "circle", source: "strikes-cluster", filter: ["!", ["has", "point_count"]],
-          paint: { "circle-color": "#EF4444", "circle-radius": 7, "circle-opacity": 0.9, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.85)" } });
-        activeLayerIdsRef.current.push("strike-clusters", "strike-cluster-count", "strike-unclustered");
-
-        map.on("click", "strike-clusters", (e) => {
-          const f = e.features?.[0]; if (!f) return;
-          (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id).then((zoom) => {
-            const coords = (f.geometry as any).coordinates;
-            map.easeTo({ center: coords, zoom });
-          });
-        });
-        map.on("click", "strike-unclustered", (e) => {
-          const f = e.features?.[0]; if (!f) return;
-          const alert = strikeAlerts.find((a) => a.id === f.properties.id);
-          if (alert) showAlertPopup(alert, (f.geometry as any).coordinates);
-        });
-        map.on("mouseenter", "strike-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
-        map.on("mouseleave", "strike-clusters", () => { map.getCanvas().style.cursor = ""; });
-        map.on("mouseenter", "strike-unclustered", () => { map.getCanvas().style.cursor = "pointer"; });
-        map.on("mouseleave", "strike-unclustered", () => { map.getCanvas().style.cursor = ""; });
-      }
-    }
-
-    /* Non-strike alerts (sirens, area highlights, generic) */
+    /* Non-strike alerts first so area fills sit below strike dots */
     visibleAlerts.filter((a) => a.type !== "strike" && a.type !== "artillery").forEach((alert) => {
       const isAreaHighlight = alert.type === "threat" || alert.type === "enemy_position" || alert.type === "army_position";
       const isSiren = alert.type?.startsWith("siren");
@@ -535,12 +497,42 @@ export default function Home() {
       map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
     });
 
-    // Area highlight fills are added after strike layers, so move strikes back on top
-    // to keep them clickable even when a threat polygon covers the same location.
-    if (map.getLayer("strike-unclustered")) {
-      map.moveLayer("strike-clusters");
-      map.moveLayer("strike-cluster-count");
-      map.moveLayer("strike-unclustered");
+    /* Strike layers added last — always render on top of area fills */
+    const strikeAlerts = visibleAlerts.filter((a) => a.type === "strike" || a.type === "artillery");
+    if (strikeAlerts.length > 0) {
+      const fc = { type: "FeatureCollection", features: strikeAlerts.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
+      if (!map.getSource("strikes-cluster")) {
+        map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 });
+        activeSourceIdsRef.current.push("strikes-cluster");
+      } else {
+        (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).setData(fc as any);
+      }
+      if (!map.getLayer("strike-clusters")) {
+        map.addLayer({ id: "strike-clusters", type: "circle", source: "strikes-cluster", filter: ["has", "point_count"],
+          paint: { "circle-color": "#EF4444", "circle-radius": ["step", ["get", "point_count"], 16, 5, 22, 10, 28], "circle-opacity": 0.85, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.8)" } });
+        map.addLayer({ id: "strike-cluster-count", type: "symbol", source: "strikes-cluster", filter: ["has", "point_count"],
+          layout: { "text-field": "{point_count_abbreviated}", "text-size": 11 }, paint: { "text-color": "#ffffff" } });
+        map.addLayer({ id: "strike-unclustered", type: "circle", source: "strikes-cluster", filter: ["!", ["has", "point_count"]],
+          paint: { "circle-color": "#EF4444", "circle-radius": 7, "circle-opacity": 0.9, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.85)" } });
+        activeLayerIdsRef.current.push("strike-clusters", "strike-cluster-count", "strike-unclustered");
+
+        map.on("click", "strike-clusters", (e) => {
+          const f = e.features?.[0]; if (!f) return;
+          (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id).then((zoom) => {
+            const coords = (f.geometry as any).coordinates;
+            map.easeTo({ center: coords, zoom });
+          });
+        });
+        map.on("click", "strike-unclustered", (e) => {
+          const f = e.features?.[0]; if (!f) return;
+          const alert = strikeAlerts.find((a) => a.id === f.properties.id);
+          if (alert) showAlertPopup(alert, (f.geometry as any).coordinates);
+        });
+        map.on("mouseenter", "strike-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "strike-clusters", () => { map.getCanvas().style.cursor = ""; });
+        map.on("mouseenter", "strike-unclustered", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "strike-unclustered", () => { map.getCanvas().style.cursor = ""; });
+      }
     }
   }, [visibleAlerts, mapReady, userSettings.highlightAreas, theme, lang]);
 
