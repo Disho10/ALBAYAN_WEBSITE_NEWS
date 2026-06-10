@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowLeft, Check, Clock, Edit3, Eye,
@@ -19,6 +19,16 @@ function getRemainingTime(expiresAt?: string | null) {
   if (m < 60) return `${m} دقيقة`;
   const h = Math.floor(m / 60), rm = m % 60;
   return rm === 0 ? `${h} ساعة` : `${h}س ${rm}د`;
+}
+
+function getRemainingColor(expiresAt?: string | null) {
+  if (!expiresAt) return "#5A6B80";
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return "#5A6B80";
+  const m = Math.floor(diff / 60000);
+  if (m < 15) return "#EF4444";
+  if (m < 60) return "#F59E0B";
+  return "#22C55E";
 }
 
 function cleanEmoji(s: string) {
@@ -55,6 +65,8 @@ const GLOBAL_STYLES = `
   .adm-icon-btn:hover { opacity: 0.75; transform: scale(1.05); }
   .adm-btn-ghost:hover { background: rgba(30,51,80,0.6) !important; color: #F1F5F9 !important; }
   .adm-type-btn:hover { border-color: rgba(91,164,230,0.3) !important; }
+  .adm-stat-card { transition: transform 0.15s, border-color 0.15s; }
+  .adm-stat-card:hover { transform: translateY(-2px); border-color: #274060 !important; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #1E3350; border-radius: 2px; }
@@ -63,6 +75,16 @@ const GLOBAL_STYLES = `
     .adm-alerts-list { order: 1; }
     .adm-create-form { order: 2; }
     .adm-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+  @media (max-width: 640px) {
+    .adm-header { padding: 0 14px !important; }
+    .adm-header-nav { display: none !important; }
+    .adm-body { padding: 14px 14px 0 !important; }
+    .adm-stats-grid { gap: 8px !important; }
+    .adm-stat-card { padding: 12px 14px 10px !important; }
+    .adm-stat-card .adm-stat-value { font-size: 24px !important; }
+    .adm-modal-body { padding: 16px !important; }
+    .adm-modal-type-grid { grid-template-columns: 1fr 1fr !important; }
   }
   @media (max-width: 480px) {
     .adm-list-actions { flex-wrap: wrap; gap: 4px !important; }
@@ -141,6 +163,7 @@ export default function AdminPage() {
   const [editDuration, setEditDuration] = useState("keep");
   const [editIsUrgent, setEditIsUrgent] = useState(false);
   const [editRadius, setEditRadius] = useState("900");
+  const [editType, setEditType] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activityLog, setActivityLog] = useState<LogEntry[]>([]);
@@ -153,6 +176,8 @@ export default function AdminPage() {
   const [isAllowed, setIsAllowed] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [, setTick] = useState(0);
 
   const selectedType = useMemo(
     () => ALERT_TYPES.find((item) => item.type === type) || ALERT_TYPES[0],
@@ -175,9 +200,11 @@ export default function AdminPage() {
   function removeArea(pcode: string) { setSelectedAreas((prev) => prev.filter((a) => a.pcode !== pcode)); }
 
   const loadAlerts = useCallback(async () => {
+    setAlertsLoading(true);
     const { data, error } = await supabase.from("alerts").select("*").order("created_at", { ascending: false });
     if (error) { console.error("Failed to load alerts:", error); setStatusMsg({ text: "خطأ في تحميل الأحداث: " + error.message, ok: false }); }
     else setAlerts(data || []);
+    setAlertsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -195,6 +222,19 @@ export default function AdminPage() {
 
   useEffect(() => { try { const t = localStorage.getItem("albayan-templates"); if (t) setTemplates(JSON.parse(t)); } catch {} }, []);
   useEffect(() => { fetch("/data/areas.json").then((r) => r.json()).then(setAllAreas).catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (statusMsg && !statusMsg.ok) {
+      const timer = setTimeout(() => setStatusMsg(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusMsg]);
+
+  // Tick every 60s to refresh remaining time badges
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleLogin() {
     setAuthError(""); setAuthLoading(true);
@@ -239,28 +279,34 @@ export default function AdminPage() {
         } catch (e) { console.warn("Telegram notification failed:", e); }
       }
       resetForm(); loadAlerts();
+      rows.forEach(r => addLog("نشر", r.area));
       setStatusMsg({ text: `تم نشر ${rows.length} حدث على الخريطة بنجاح`, ok: true });
       setTimeout(() => setStatusMsg(null), 4000);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
     setPublishing(false);
   }
 
-  function startEdit(alert: AlertItem) { setEditingAlert(alert); setEditDescription(alert.description || ""); setEditIsUrgent(alert.is_urgent || false); setEditDuration("keep"); }
+  function startEdit(alert: AlertItem) { setEditingAlert(alert); setEditDescription(alert.description || ""); setEditIsUrgent(alert.is_urgent || false); setEditDuration("keep"); setEditRadius(String(alert.radius || 900)); setEditType(alert.type); }
 
   async function saveEdit() {
     if (!editingAlert) return;
-    const updates: Record<string, unknown> = { description: editDescription, is_urgent: editIsUrgent };
+    const updates: Record<string, unknown> = { description: editDescription, is_urgent: editIsUrgent, radius: Number(editRadius) || editingAlert.radius };
     if (editDuration !== "keep") updates.expires_at = editDuration === "permanent" ? null : new Date(Date.now() + Number(editDuration) * 60000).toISOString();
+    if (editType !== editingAlert.type) {
+      const newType = ALERT_TYPES.find(t => t.type === editType);
+      if (newType) { updates.type = newType.type; updates.type_label = newType.label; updates.color = newType.color; updates.title = newType.label; }
+    }
     const { error } = await supabase.from("alerts").update(updates).eq("id", editingAlert.id);
     if (error) setStatusMsg({ text: "خطأ أثناء التعديل: " + error.message, ok: false });
-    else { setStatusMsg({ text: "تم تعديل الحدث بنجاح", ok: true }); setTimeout(() => setStatusMsg(null), 3000); setEditingAlert(null); loadAlerts(); }
+    else { addLog("تعديل", editingAlert.area); setStatusMsg({ text: "تم تعديل الحدث بنجاح", ok: true }); setTimeout(() => setStatusMsg(null), 3000); setEditingAlert(null); loadAlerts(); }
   }
 
-  async function hideAlert(id: number) { await supabase.from("alerts").update({ status: "hidden" }).eq("id", id); loadAlerts(); }
-  async function showAlert(id: number) { await supabase.from("alerts").update({ status: "active" }).eq("id", id); loadAlerts(); }
-  async function deleteAlert(id: number) { if (!confirm("هل تريد حذف هذا الحدث نهائيًا؟")) return; await supabase.from("alerts").delete().eq("id", id); loadAlerts(); }
-  async function clearExpired() { await supabase.from("alerts").delete().not("expires_at", "is", null).lt("expires_at", new Date().toISOString()); loadAlerts(); }
-  async function clearAll() { if (!confirm("هل تريد حذف جميع الأحداث؟ لا يمكن التراجع.")) return; await supabase.from("alerts").delete().gte("id", 0); loadAlerts(); }
+  async function hideAlert(id: number) { const a = alerts.find(x => x.id === id); await supabase.from("alerts").update({ status: "hidden" }).eq("id", id); if (a) addLog("إخفاء", a.area); loadAlerts(); }
+  async function showAlert(id: number) { const a = alerts.find(x => x.id === id); await supabase.from("alerts").update({ status: "active" }).eq("id", id); if (a) addLog("إظهار", a.area); loadAlerts(); }
+  async function deleteAlert(id: number) { if (!confirm("هل تريد حذف هذا الحدث نهائيًا؟")) return; const a = alerts.find(x => x.id === id); await supabase.from("alerts").delete().eq("id", id); if (a) addLog("حذف", a.area); loadAlerts(); }
+  async function clearExpired() { await supabase.from("alerts").delete().not("expires_at", "is", null).lt("expires_at", new Date().toISOString()); addLog("حذف المنتهي", "الكل"); loadAlerts(); }
+  async function clearAll() { if (!confirm("هل تريد حذف جميع الأحداث؟ لا يمكن التراجع.")) return; await supabase.from("alerts").delete().gte("id", 0); addLog("حذف الكل", "الكل"); loadAlerts(); }
 
   const activeCount = alerts.filter((a) => a.status !== "hidden").length;
   const urgentCount = alerts.filter((a) => a.is_urgent).length;
@@ -278,6 +324,23 @@ export default function AdminPage() {
     });
   }, [alerts, listSearch, listTypeFilter, listStatusFilter]);
   const isFormReady = useCoords ? (!!coordName.trim() && !!coordLat && !!coordLng) : selectedAreas.length > 0;
+
+  const publishRef = useRef(publishAlert);
+  publishRef.current = publishAlert;
+  const isFormReadyRef = useRef(isFormReady);
+  isFormReadyRef.current = isFormReady;
+
+  useEffect(() => {
+    function handleKeydown(e: KeyboardEvent) {
+      if (e.key === "Escape" && editingAlert) setEditingAlert(null);
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && isFormReadyRef.current && !publishing) {
+        e.preventDefault();
+        publishRef.current();
+      }
+    }
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [editingAlert, publishing]);
 
   /* ── Helper functions for bulk edit, templates, duplication, activity log ── */
   function addLog(action: string, area: string) {
@@ -333,7 +396,7 @@ export default function AdminPage() {
     else setSelectedIds(new Set(filteredAlerts.map(a => a.id)));
   }
 
-  async function bulkAction(action: "delete" | "hide" | "urgent") {
+  async function bulkAction(action: "delete" | "hide" | "show" | "urgent") {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
     if (action === "delete") {
@@ -343,6 +406,9 @@ export default function AdminPage() {
     } else if (action === "hide") {
       await supabase.from("alerts").update({ status: "hidden" }).in("id", ids);
       addLog(`إخفاء جماعي (${ids.length})`, "متعدد");
+    } else if (action === "show") {
+      await supabase.from("alerts").update({ status: "active" }).in("id", ids);
+      addLog(`إظهار جماعي (${ids.length})`, "متعدد");
     } else if (action === "urgent") {
       await supabase.from("alerts").update({ is_urgent: true }).in("id", ids);
       addLog(`عاجل جماعي (${ids.length})`, "متعدد");
@@ -424,14 +490,14 @@ export default function AdminPage() {
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", backgroundImage: "linear-gradient(rgba(30,51,80,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(30,51,80,0.2) 1px, transparent 1px)", backgroundSize: "60px 60px", zIndex: 0 }} />
 
       {/* ── Sticky header ──────────────────────────────────── */}
-      <header style={{ position: "sticky", top: 0, zIndex: 40, background: "rgba(10,22,40,0.94)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid #1E3350", height: "60px", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <header className="adm-header" style={{ position: "sticky", top: 0, zIndex: 40, background: "rgba(10,22,40,0.94)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid #1E3350", height: "60px", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "5px", color: "#5A6B80", fontSize: "12px", textDecoration: "none", transition: "color 0.15s" }}
+          <Link href="/" className="adm-header-nav" style={{ display: "flex", alignItems: "center", gap: "5px", color: "#5A6B80", fontSize: "12px", textDecoration: "none", transition: "color 0.15s" }}
             onMouseEnter={(e) => e.currentTarget.style.color = "#94A3B8"}
             onMouseLeave={(e) => e.currentTarget.style.color = "#5A6B80"}>
             <ArrowLeft size={13} />الخريطة
           </Link>
-          <div style={{ width: "1px", height: "16px", background: "#1E3350" }} />
+          <div className="adm-header-nav" style={{ width: "1px", height: "16px", background: "#1E3350" }} />
           <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
             <div style={{ width: "28px", height: "28px", background: "rgba(229,57,53,0.1)", border: "1px solid rgba(229,57,53,0.22)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", color: "#E53935" }}>
               <Shield size={13} />
@@ -442,6 +508,11 @@ export default function AdminPage() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {activeCount > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "rgba(91,164,230,0.07)", border: "1px solid rgba(91,164,230,0.18)", borderRadius: "20px", padding: "5px 10px" }}>
+              <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{activeCount} نشط</span>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.18)", borderRadius: "20px", padding: "5px 12px" }}>
             <span style={{ width: "6px", height: "6px", background: "#22C55E", borderRadius: "50%", animation: "pulse 2s infinite", display: "inline-block" }} />
             <span style={{ fontSize: "11px", color: "#22C55E", fontWeight: 700 }}>النظام يعمل</span>
@@ -452,13 +523,14 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: "1440px", margin: "0 auto", padding: "24px 28px 0" }}>
+      <div className="adm-body" style={{ position: "relative", zIndex: 1, maxWidth: "1440px", margin: "0 auto", padding: "24px 28px 0" }}>
 
         {/* ── Toast ──────────────────────────────────────── */}
         {statusMsg && (
           <div style={{ marginBottom: "18px", background: statusMsg.ok ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${statusMsg.ok ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)"}`, borderRadius: "12px", padding: "13px 18px", display: "flex", alignItems: "center", gap: "9px", color: statusMsg.ok ? "#86EFAC" : "#FCA5A5", fontSize: "13px", fontWeight: 700, animation: "slideDown 0.2s ease" }}>
-            {statusMsg.ok ? <Check size={14} style={{ flexShrink: 0 }} /> : <X size={14} style={{ flexShrink: 0 }} />}
-            {statusMsg.text}
+            {statusMsg.ok ? <Check size={14} style={{ flexShrink: 0 }} /> : <AlertTriangle size={14} style={{ flexShrink: 0 }} />}
+            <span style={{ flex: 1 }}>{statusMsg.text}</span>
+            <button onClick={() => setStatusMsg(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", opacity: 0.6, padding: "2px", display: "flex", flexShrink: 0 }}><X size={13} /></button>
           </div>
         )}
 
@@ -470,7 +542,7 @@ export default function AdminPage() {
             { label: "المخفية", value: hiddenCount, color: "#5A6B80", Icon: EyeOff },
             { label: "الإجمالي", value: alerts.length, color: "#5BA4E6", Icon: Radio },
           ] as const).map(({ label, value, color, Icon }) => (
-            <div key={label} style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "16px", padding: "18px 20px 16px", position: "relative", overflow: "hidden" }}>
+            <div key={label} className="adm-stat-card" style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "16px", padding: "18px 20px 16px", position: "relative", overflow: "hidden", cursor: "default" }}>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(90deg, ${color}55, transparent)` }} />
               <div style={{ width: "30px", height: "30px", background: `${color}12`, border: `1px solid ${color}22`, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", color, marginBottom: "14px" }}>
                 <Icon size={14} />
@@ -486,9 +558,18 @@ export default function AdminPage() {
 
           {/* ══ CREATE FORM ══════════════════════════════ */}
           <div className="adm-create-form" style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#E53935", boxShadow: "0 0 7px rgba(229,57,53,0.6)", display: "inline-block" }} />
-              <h2 style={{ fontSize: "14px", fontWeight: 800, margin: 0 }}>حدث جديد</h2>
+            <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#E53935", boxShadow: "0 0 7px rgba(229,57,53,0.6)", display: "inline-block" }} />
+                <h2 style={{ fontSize: "14px", fontWeight: 800, margin: 0 }}>حدث جديد</h2>
+              </div>
+              {(selectedAreas.length > 0 || description || useCoords) && (
+                <button onClick={resetForm} style={{ background: "transparent", border: "1px solid #1E3350", borderRadius: "7px", padding: "4px 10px", color: "#5A6B80", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(239,68,68,0.25)"; e.currentTarget.style.color = "#EF4444"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1E3350"; e.currentTarget.style.color = "#5A6B80"; }}>
+                  مسح النموذج
+                </button>
+              )}
             </div>
 
             <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -543,6 +624,7 @@ export default function AdminPage() {
                         onChange={(e) => { setAreaSearch(e.target.value); setShowAreaSuggestions(true); }}
                         onFocus={(e) => { e.currentTarget.style.borderColor = "#5BA4E6"; if (areaSearch) setShowAreaSuggestions(true); }}
                         onBlur={(e) => { e.currentTarget.style.borderColor = "#1E3350"; setTimeout(() => setShowAreaSuggestions(false), 200); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" && filteredAreas.length > 0) { e.preventDefault(); addArea(filteredAreas[0]); } }}
                         style={{ ...inp }} />
                       {showAreaSuggestions && filteredAreas.length > 0 && (
                         <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#0F1D30", border: "1px solid #274060", borderRadius: "12px", maxHeight: "210px", overflowY: "auto", boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 50 }}>
@@ -555,6 +637,11 @@ export default function AdminPage() {
                               <span style={{ fontSize: "11px", color: "#5A6B80" }}>{item.district}</span>
                             </button>
                           ))}
+                        </div>
+                      )}
+                      {showAreaSuggestions && areaSearch.trim().length > 1 && filteredAreas.length === 0 && (
+                        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#0F1D30", border: "1px solid #274060", borderRadius: "12px", padding: "14px 16px", boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 50, textAlign: "center" as const }}>
+                          <span style={{ fontSize: "12px", color: "#5A6B80" }}>لا توجد نتائج لـ &quot;{areaSearch}&quot;</span>
                         </div>
                       )}
                     </div>
@@ -595,10 +682,11 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <SectionLabel>النطاق (م)</SectionLabel>
-                  <input value={radius} onChange={(e) => setRadius(e.target.value)} dir="ltr"
-                    style={{ ...inp }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = "#5BA4E6"}
-                    onBlur={(e) => e.currentTarget.style.borderColor = "#1E3350"} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(10,22,40,0.7)", border: "1px solid #1E3350", borderRadius: "10px", padding: "8px 14px" }}>
+                    <input type="range" min="300" max="10000" step="100" value={radius} onChange={(e) => setRadius(e.target.value)}
+                      style={{ flex: 1, accentColor: "#5BA4E6", cursor: "pointer" }} />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#5BA4E6", minWidth: "48px", textAlign: "center" as const, fontVariantNumeric: "tabular-nums" }}>{radius}m</span>
+                  </div>
                 </div>
               </div>
 
@@ -647,7 +735,7 @@ export default function AdminPage() {
                 ))}
               </div>
               {/* Publish button */}
-              <button onClick={publishAlert} disabled={publishing || !isFormReady}
+              <button onClick={publishAlert} disabled={publishing || !isFormReady} title="Ctrl+Enter"
                 style={{ width: "100%", background: publishing || !isFormReady ? "rgba(30,51,80,0.55)" : "linear-gradient(135deg, #E53935 0%, #C62828 100%)", border: `1px solid ${publishing || !isFormReady ? "#1E3350" : "rgba(229,57,53,0.25)"}`, borderRadius: "12px", padding: "13px", color: publishing || !isFormReady ? "#5A6B80" : "white", fontSize: "14px", fontWeight: 800, cursor: publishing || !isFormReady ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: publishing || !isFormReady ? "none" : "0 4px 20px rgba(229,57,53,0.28)", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
                 onMouseEnter={(e) => { if (!publishing && isFormReady) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(229,57,53,0.38)"; } }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = publishing || !isFormReady ? "none" : "0 4px 20px rgba(229,57,53,0.28)"; }}>
@@ -659,6 +747,11 @@ export default function AdminPage() {
                   `نشر ${useCoords ? "الحدث" : selectedAreas.length > 1 ? `${selectedAreas.length} أحداث` : "الحدث"}`
                 )}
               </button>
+              {isFormReady && !publishing && (
+                <div style={{ textAlign: "center", marginTop: "6px", fontSize: "10px", color: "#5A6B80", letterSpacing: "0.05em" }}>
+                  ⌘/Ctrl + Enter
+                </div>
+              )}
             </div>
           </div>
 
@@ -677,7 +770,7 @@ export default function AdminPage() {
               </div>
               <div className="adm-list-actions" style={{ display: "flex", gap: "6px" }}>
                 <button onClick={loadAlerts} className="adm-btn-ghost" style={{ display: "flex", alignItems: "center", gap: "5px", background: "transparent", border: "1px solid #1E3350", borderRadius: "8px", padding: "6px 12px", color: "#5A6B80", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
-                  <RefreshCw size={11} />تحديث
+                  <RefreshCw size={11} style={alertsLoading ? { animation: "spin 0.8s linear infinite" } : undefined} />تحديث
                 </button>
                 <button onClick={clearExpired} className="adm-btn-ghost" style={{ background: "transparent", border: "1px solid #1E3350", borderRadius: "8px", padding: "6px 12px", color: "#5A6B80", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
                   حذف المنتهي
@@ -722,6 +815,9 @@ export default function AdminPage() {
             {selectedIds.size > 0 && (
               <div style={{ padding: "8px 16px", borderBottom: "1px solid #1E3350", display: "flex", gap: "6px", alignItems: "center", background: "rgba(91,164,230,0.04)" }}>
                 <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 700 }}>{selectedIds.size} محدد</span>
+                <button onClick={() => bulkAction("show")} style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: "6px", padding: "4px 10px", color: "#22C55E", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Eye size={10} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "4px" }} />إظهار
+                </button>
                 <button onClick={() => bulkAction("hide")} style={{ background: "rgba(90,107,128,0.07)", border: "1px solid rgba(90,107,128,0.18)", borderRadius: "6px", padding: "4px 10px", color: "#5A6B80", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                   <EyeOff size={10} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "4px" }} />إخفاء
                 </button>
@@ -736,9 +832,16 @@ export default function AdminPage() {
             )}
 
             {/* List body */}
-            {filteredAlerts.length === 0 ? (
+            {alertsLoading ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 24px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2.5px solid #1E3350", borderTopColor: "#5BA4E6", animation: "spin 0.8s linear infinite", marginBottom: "14px" }} />
+                <span style={{ fontSize: "12px", color: "#5A6B80" }}>جاري التحميل...</span>
+              </div>
+            ) : filteredAlerts.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: "32px", marginBottom: "14px", opacity: 0.3 }}>🔍</div>
+                <div style={{ width: "48px", height: "48px", background: "rgba(91,164,230,0.06)", border: "1px solid rgba(91,164,230,0.12)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+                  <Search size={20} color="#5A6B80" />
+                </div>
                 <h3 style={{ fontSize: "15px", fontWeight: 800, color: "#F1F5F9", marginBottom: "6px" }}>{listSearch || listTypeFilter !== "all" || listStatusFilter !== "all" ? "لا توجد نتائج" : "لا توجد أحداث"}</h3>
                 <p style={{ fontSize: "13px", color: "#5A6B80", margin: 0 }}>{listSearch ? "جرّب كلمة بحث مختلفة" : "أضف أول حدث ليظهر مباشرة على الخريطة"}</p>
               </div>
@@ -781,9 +884,19 @@ export default function AdminPage() {
                             {alert.description}
                           </div>
                         )}
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
-                          <Clock size={10} color="#5BA4E6" />
-                          <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 600 }}>{alert.created_at ? new Date(alert.created_at).toLocaleString("ar-LB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "6px", flexWrap: "wrap" as const }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                            <Clock size={10} color="#5BA4E6" />
+                            <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 600 }}>{alert.created_at ? new Date(alert.created_at).toLocaleString("ar-LB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
+                          </div>
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: getRemainingColor(alert.expires_at), background: `${getRemainingColor(alert.expires_at)}11`, border: `1px solid ${getRemainingColor(alert.expires_at)}22`, borderRadius: "4px", padding: "1px 6px" }}>
+                            {getRemainingTime(alert.expires_at)}
+                          </span>
+                          {alert.radius && (
+                            <span style={{ fontSize: "10px", fontWeight: 600, color: "#5A6B80" }}>
+                              <Ruler size={9} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "2px" }} />{alert.radius}m
+                            </span>
+                          )}
                         </div>
                       </div>
                       {/* Action buttons */}
@@ -857,14 +970,14 @@ export default function AdminPage() {
 
       {/* ── Edit modal ─────────────────────────────────────── */}
       {editingAlert && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", animation: "fadeIn 0.15s ease" }}>
-          <div style={{ width: "100%", maxWidth: "520px", background: "#0F1D30", border: "1px solid #274060", borderRadius: "24px", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6)", animation: "slideDown 0.2s ease" }}>
+        <div onClick={() => setEditingAlert(null)} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", animation: "fadeIn 0.15s ease" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: "520px", background: "#0F1D30", border: "1px solid #274060", borderRadius: "24px", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6)", animation: "slideDown 0.2s ease", maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ padding: "20px 24px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <h2 style={{ fontSize: "16px", fontWeight: 800, margin: "0 0 5px" }}>تعديل الحدث</h2>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#5A6B80" }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: TYPE_COLOR[editingAlert.type] || "#5BA4E6", display: "inline-block" }} />
-                  <MapPin size={10} />{editingAlert.area} — {cleanEmoji(editingAlert.type_label)}
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: TYPE_COLOR[editType] || "#5BA4E6", display: "inline-block" }} />
+                  <MapPin size={10} />{editingAlert.area}
                 </div>
               </div>
               <button onClick={() => setEditingAlert(null)}
@@ -872,7 +985,23 @@ export default function AdminPage() {
                 <X size={13} />
               </button>
             </div>
-            <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="adm-modal-body" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <div style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>نوع الحدث</div>
+                <div className="adm-modal-type-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "5px" }}>
+                  {ALERT_TYPES.map((item) => {
+                    const c = TYPE_COLOR[item.type] || "#5BA4E6";
+                    const sel = editType === item.type;
+                    return (
+                      <button key={item.type} type="button" onClick={() => setEditType(item.type)}
+                        style={{ display: "flex", alignItems: "center", gap: "5px", padding: "7px 9px", background: sel ? `${c}14` : "rgba(10,22,40,0.55)", border: `1px solid ${sel ? `${c}45` : "#1E3350"}`, borderRadius: "7px", color: sel ? c : "#5A6B80", fontSize: "11px", fontWeight: 700, cursor: "pointer", transition: "all 0.13s", textAlign: "right" as const, fontFamily: "inherit" }}>
+                        <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: c, flexShrink: 0, display: "inline-block" }} />
+                        {cleanEmoji(item.label)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div>
                 <div style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>الوصف</div>
                 <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={4}
