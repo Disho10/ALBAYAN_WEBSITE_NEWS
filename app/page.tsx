@@ -1081,60 +1081,71 @@ export default function Home() {
           </div>
         )}
 
-        {/* Support slide-up sheet — shows once after 5 minutes */}
+        {/* Support slide-up sheet */}
         {showSupportPopup && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
             onClick={(e) => { if (e.target === e.currentTarget) { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} } }}>
-            <div className="w-full max-w-md rounded-t-2xl overflow-hidden max-h-[85vh] overflow-y-auto animate-slide-up"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderBottom: "none", boxShadow: "0 -20px 60px rgba(0,0,0,0.4)" }}>
-              {/* Handle bar */}
-              <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-2" style={{ background: "var(--border)" }} />
+            <div className="w-full max-w-[420px] rounded-2xl overflow-hidden animate-slide-up"
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", boxShadow: "0 25px 80px rgba(0,0,0,0.5)" }}>
+              {/* Red accent top */}
+              <div style={{ height: "4px", background: "linear-gradient(90deg, #E53935, #EF4444, #F59E0B)" }} />
               {/* Header */}
-              <div className="px-6 pt-2 pb-4 text-center">
-                <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: "rgba(229,57,53,0.08)" }}>❤️</div>
-                <h3 className="text-lg font-extrabold mb-1">{isAr ? "ادعم البيان الإخباري" : "Support AlBayan"}</h3>
-                <p className="text-xs leading-6" style={{ color: "var(--text-secondary)" }}>
-                  {isAr ? "نقدم هذه الخدمة مجاناً وبدون إعلانات. مساهمتك تساعدنا على الاستمرار." : "Free, ad-free service. Your contribution keeps us running."}
+              <div className="relative px-6 pt-6 pb-4 text-center" style={{ background: "linear-gradient(180deg, rgba(229,57,53,0.06) 0%, transparent 100%)" }}>
+                <button onClick={() => { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} }}
+                  className="absolute top-4 w-7 h-7 flex items-center justify-center rounded-full" style={{ [isAr ? "left" : "right"]: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer", fontSize: "12px" }}>✕</button>
+                <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #E53935, #EF4444)", boxShadow: "0 4px 16px rgba(229,57,53,0.3)" }}>
+                  <span className="text-xl">❤️</span>
+                </div>
+                <h3 className="text-xl font-extrabold mb-1">{isAr ? "ادعم البيان" : "Support AlBayan"}</h3>
+                <p className="text-[12px] leading-6" style={{ color: "var(--text-secondary)" }}>
+                  {isAr ? "بدون إعلانات · بدون اشتراك · مساهمتك تبقينا مستمرين" : "No ads · No subscriptions · Your support keeps us going"}
                 </p>
               </div>
-              {/* Wish Money QR */}
-              <div className="px-6 pb-4">
-                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <p className="text-[10px] font-bold tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>WISH MONEY</p>
-                  <img src="/qr-wish.png" alt="QR" className="w-40 h-40 mx-auto rounded-lg mb-3" style={{ background: "white", padding: "8px" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  <div className="text-lg font-extrabold tracking-wide" dir="ltr">+961 76 096 674</div>
-                  <button onClick={() => { navigator.clipboard.writeText("+96176096674"); }}
-                    className="mt-2 text-[11px] font-bold px-4 py-1.5 rounded-lg" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border)", cursor: "pointer" }}>
-                    {isAr ? "نسخ الرقم" : "Copy Number"}
-                  </button>
-                </div>
-              </div>
-              {/* OMT */}
-              <div className="px-6 pb-4">
-                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <img src="/omt-logo.png" alt="OMT" className="h-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                    <p className="text-[10px] font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>OMT</p>
+              {/* Payment methods */}
+              <div className="px-5 pb-2 space-y-3">
+                {/* Wish Money */}
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                  <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
+                    <span className="text-[11px] font-extrabold tracking-widest" style={{ color: "var(--text-muted)" }}>WISH MONEY</span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(34,197,94,0.1)", color: "#22C55E", border: "1px solid rgba(34,197,94,0.2)" }}>{isAr ? "متاح" : "Available"}</span>
                   </div>
-                  <p className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>{isAr ? "تحويل عبر أي فرع OMT باسم" : "Transfer via any OMT branch to"}</p>
-                  <div className="text-lg font-extrabold">Mohamad Abed Ali</div>
+                  <div className="p-4 flex items-center gap-4" style={{ background: "var(--bg-card)" }}>
+                    <img src="/qr-donate.png" alt="QR" className="w-24 h-24 rounded-lg flex-shrink-0" style={{ background: "white", padding: "3px" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] mb-1.5" style={{ color: "var(--text-muted)" }}>{isAr ? "رقم التحويل" : "Transfer Number"}</p>
+                      <div className="text-base font-extrabold tracking-wide mb-2.5" dir="ltr">+961 76 096 674</div>
+                      <button onClick={() => { navigator.clipboard.writeText("+96176096674"); (document.activeElement as HTMLElement)?.blur(); }}
+                        className="text-[10px] font-bold px-3 py-1.5 rounded-lg transition" style={{ background: "rgba(91,164,230,0.08)", color: "#5BA4E6", border: "1px solid rgba(91,164,230,0.18)", cursor: "pointer" }}>
+                        {isAr ? "📋 نسخ الرقم" : "📋 Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* OMT */}
+                <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+                  <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
+                    <span className="text-[11px] font-extrabold tracking-widest" style={{ color: "var(--text-muted)" }}>OMT</span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(34,197,94,0.1)", color: "#22C55E", border: "1px solid rgba(34,197,94,0.2)" }}>{isAr ? "متاح" : "Available"}</span>
+                  </div>
+                  <div className="px-4 py-3.5" style={{ background: "var(--bg-card)" }}>
+                    <p className="text-[10px] mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "تحويل عبر أي فرع OMT باسم" : "Transfer via any OMT branch to"}</p>
+                    <div className="text-base font-extrabold">Mohamad Abed Ali</div>
+                  </div>
+                </div>
+                {/* USDT */}
+                <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: "var(--bg-card)", border: "1px dashed var(--border)" }}>
+                  <span className="text-[11px] font-extrabold tracking-widest" style={{ color: "var(--text-muted)" }}>USDT (TRC20)</span>
+                  <span className="text-[10px] font-bold" style={{ color: "var(--text-muted)" }}>{isAr ? "قريباً" : "Coming soon"}</span>
                 </div>
               </div>
-              {/* USDT */}
-              <div className="px-6 pb-4">
-                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <p className="text-[10px] font-bold tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>USDT (TRC20)</p>
-                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{isAr ? "قريباً" : "Coming soon"}</p>
-                </div>
-              </div>
-              {/* Buttons */}
-              <div className="px-6 pb-6 grid grid-cols-2 gap-3">
-                <a href="/donate" className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--accent)", color: "white" }}>
-                  {isAr ? "صفحة التبرع" : "Donate Page"}
+              {/* CTA */}
+              <div className="px-5 pt-3 pb-5">
+                <a href="/donate" className="w-full flex items-center justify-center py-3.5 rounded-xl text-sm font-extrabold tracking-wide" style={{ background: "var(--accent)", color: "white", boxShadow: "0 4px 12px rgba(229,57,53,0.25)" }}>
+                  {isAr ? "المزيد من طرق الدعم" : "More Ways to Support"}
                 </a>
                 <button onClick={() => { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} }}
-                  className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                  {isAr ? "لاحقاً" : "Later"}
+                  className="w-full mt-2 text-center text-[11px] py-2 font-bold" style={{ color: "var(--text-muted)", cursor: "pointer", background: "transparent", border: "none" }}>
+                  {isAr ? "ليس الآن" : "Not now"}
                 </button>
               </div>
             </div>
