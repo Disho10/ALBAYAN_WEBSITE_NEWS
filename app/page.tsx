@@ -917,8 +917,8 @@ export default function Home() {
         {/* Legend is now inside the Layers panel */}
 
         {/* Events side panel */}
-        <div className={`absolute top-0 ${isAr ? "left-0" : "right-0"} z-20 h-full flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
-          style={{ background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
+        <div className={`absolute top-14 ${isAr ? "left-0" : "right-0"} z-20 flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
+          style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
           {sidebarOpen && (<>
             {/* Panel header */}
             <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -984,8 +984,8 @@ export default function Home() {
 
         {/* Alert detail side panel */}
         {drawerAlert && (
-          <div className={`absolute top-0 ${isAr ? "left-0" : "right-0"} z-30 h-full w-full md:w-[400px] flex flex-col`}
-            style={{ background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
+          <div className={`absolute top-14 ${isAr ? "left-0" : "right-0"} z-30 w-full md:w-[400px] flex flex-col`}
+            style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
             {/* Detail header */}
             <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
               <div className="flex items-center gap-3">
