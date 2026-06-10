@@ -420,6 +420,7 @@ export default function Home() {
   }, [measurePoints]);
 
   function openDrawer(alert: AlertItem) {
+    setSidebarOpen(false);
     setDrawerAlert(alert);
     const map = mapInstance.current;
     if (map) map.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 });
@@ -435,7 +436,7 @@ export default function Home() {
       if (e.key === "f" || e.key === "F") { e.preventDefault(); setFilterPanelOpen((v) => !v); }
       if (e.key === "s" || e.key === "S") { e.preventDefault(); setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 100); }
       if (e.key === "l" || e.key === "L") { e.preventDefault(); locateUser(); }
-      if (e.key === "Escape") { setFilterPanelOpen(false); setLayerPanelOpen(false); setSearchOpen(false); setSearchQuery(""); if (activePopupRef.current) activePopupRef.current.remove(); }
+      if (e.key === "Escape") { setFilterPanelOpen(false); setLayerPanelOpen(false); setSearchOpen(false); setSearchQuery(""); setDrawerAlert(null); if (activePopupRef.current) activePopupRef.current.remove(); }
       if (e.key === "=" || e.key === "+") { e.preventDefault(); zoomIn(); }
       if (e.key === "-") { e.preventDefault(); zoomOut(); }
     }
@@ -794,7 +795,7 @@ export default function Home() {
             <Link href="/donate" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("supportUs")}</Link>
             <Link href="/report" className="h-8 px-3 flex items-center rounded-lg text-xs font-bold text-white" style={{ background: "var(--accent)" }}>{t("report")}</Link>
           </nav>
-          <div className="md:hidden"><button className="map-btn !w-8 !h-8" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>{mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}</button></div>
+          <div className="md:hidden"><button className="map-btn !w-8 !h-8" onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setSidebarOpen(false); setDrawerAlert(null); } }}>{mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}</button></div>
         </div>
 
         {/* Mobile dropdown */}
@@ -918,7 +919,7 @@ export default function Home() {
 
         {/* Events side panel */}
         <div className={`absolute top-[56px] ${isAr ? "left-0" : "right-0"} z-20 flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
-          style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
+          style={{ bottom: 0, background: "var(--bg-main)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
           {sidebarOpen && (<>
             {/* Panel header */}
             <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -938,7 +939,7 @@ export default function Home() {
                 const timeAgo = getTimeAgo(alert.created_at, isAr);
                 const fullTime = alert.created_at ? new Date(alert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "";
                 return (
-                  <button key={alert.id} onClick={() => { setDrawerAlert(alert); mapInstance.current?.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 }); }}
+                  <button key={alert.id} onClick={() => { setSidebarOpen(false); setDrawerAlert(alert); mapInstance.current?.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 }); }}
                     className="w-full rounded-xl p-4 transition relative overflow-hidden group" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", textAlign: isAr ? "right" : "left" }}>
                     <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[3px]`} style={{ backgroundColor: color }} />
                     <div className={isAr ? "pr-3" : "pl-3"}>
@@ -949,6 +950,9 @@ export default function Home() {
                       <div className="text-[15px] font-extrabold leading-snug">{alert.type_label ? cleanLabel(alert.type_label) : ""} — {alert.area}</div>
                       {alert.description && <div className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{alert.description}</div>}
                       <div className="flex items-center gap-3 mt-2.5">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                          <Clock size={9} className="inline -mt-px" style={{ marginInlineEnd: "3px" }} />{getRemainingTime(alert.expires_at, isAr)}
+                        </span>
                         <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${SITE_URL}/?alert=${alert.id}`); }} className="text-[10px] flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
                           <Share2 size={10} /> {isAr ? "مشاركة" : "Share"}
                         </button>
@@ -962,8 +966,8 @@ export default function Home() {
         </div>
 
         {/* Events toggle button (when panel is closed) */}
-        {!sidebarOpen && (
-          <button onClick={() => { setSidebarOpen(true); setDrawerAlert(null); }}
+        {!sidebarOpen && !drawerAlert && (
+          <button onClick={() => { setSidebarOpen(true); setDrawerAlert(null); setMobileMenuOpen(false); setFilterPanelOpen(false); setLayerPanelOpen(false); }}
             className={`absolute ${isAr ? "left-3" : "right-3"} bottom-24 md:bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
             <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
             <span>{t("events")}</span>
@@ -985,11 +989,15 @@ export default function Home() {
         {/* Alert detail side panel */}
         {drawerAlert && (
           <div className={`absolute top-[56px] ${isAr ? "left-0" : "right-0"} z-30 w-full md:w-[400px] flex flex-col`}
-            style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
+            style={{ bottom: 0, background: "var(--bg-main)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.25)" }}>
             {/* Detail header */}
             <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setDrawerAlert(null)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}><XIcon size={14} /></button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setDrawerAlert(null); setSidebarOpen(true); }} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+                  {isAr ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                  <span className="md:hidden">{isAr ? "الأحداث" : "Events"}</span>
+                  <XIcon size={14} className="hidden md:block" />
+                </button>
                 <span className="text-sm font-extrabold">{isAr ? "تفاصيل التنبيه" : "Alert Details"}</span>
               </div>
               <div className="flex gap-1.5">
@@ -1013,9 +1021,12 @@ export default function Home() {
                   </div>
                   <h2 className="text-lg font-extrabold mb-1">{cleanLabel(drawerAlert.type_label)} — {drawerAlert.area}</h2>
                   {drawerAlert.description && <p className="text-xs leading-7 mt-2" style={{ color: "var(--text-secondary)" }}>{drawerAlert.description}</p>}
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: drawerAlert.status === "active" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: drawerAlert.status === "active" ? "#22C55E" : "#EF4444", border: `1px solid ${drawerAlert.status === "active" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
                       ● {drawerAlert.status === "active" ? (isAr ? "نشط" : "ACTIVE") : (isAr ? "منتهي" : "EXPIRED")}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                      <Clock size={9} className="inline -mt-px" style={{ marginInlineEnd: "3px" }} />{getRemainingTime(drawerAlert.expires_at, isAr)}
                     </span>
                   </div>
                 </div>
@@ -1025,13 +1036,19 @@ export default function Home() {
               {/* Info rows */}
               <div style={{ borderBottom: "1px solid var(--border)" }}>
                 <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--border)" }}>
-                  <span className="text-xs flex items-center gap-2" style={{ color: "var(--text-muted)" }}>📍 {isAr ? "النوع" : "Type"}</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>{isAr ? "النوع" : "Type"}</span>
                   <span className="text-xs font-bold">{isAr ? cleanLabel(drawerAlert.type_label) : (TYPE_LABELS_EN[drawerAlert.type] || cleanLabel(drawerAlert.type_label))}</span>
                 </div>
-                <div className="flex items-center justify-between px-5 py-3.5">
-                  <span className="text-xs flex items-center gap-2" style={{ color: "var(--text-muted)" }}>🕐 {isAr ? "الوقت" : "Time"}</span>
+                <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>{isAr ? "الوقت" : "Time"}</span>
                   <span className="text-xs font-bold" dir="ltr">{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—"} · {drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}</span>
                 </div>
+                {drawerAlert.radius && (
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>{isAr ? "النطاق" : "Radius"}</span>
+                    <span className="text-xs font-bold font-mono" dir="ltr">{drawerAlert.radius >= 1000 ? `${(drawerAlert.radius / 1000).toFixed(1)}km` : `${drawerAlert.radius}m`}</span>
+                  </div>
+                )}
               </div>
               {/* Coordinates */}
               <div className="px-5 pt-2 pb-1">
