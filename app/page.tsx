@@ -254,6 +254,14 @@ export default function Home() {
 
   /* Alert detail drawer */
   const [drawerAlert, setDrawerAlert] = useState<AlertItem | null>(null);
+  const [showSupportPopup, setShowSupportPopup] = useState(false);
+
+  // Support popup — show once after 5 minutes
+  useEffect(() => {
+    try { if (localStorage.getItem("albayan-support-dismissed")) return; } catch {}
+    const timer = setTimeout(() => setShowSupportPopup(true), 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   /* Search */
   const [searchOpen, setSearchOpen] = useState(false);
@@ -908,39 +916,60 @@ export default function Home() {
 
         {/* Legend is now inside the Layers panel */}
 
-        {/* Events panel */}
-        <div className={`absolute ${isAr ? "left-3" : "right-3"} bottom-12 z-10`}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer"
-            style={{ borderTopLeftRadius: sidebarOpen ? 0 : 12, borderTopRightRadius: sidebarOpen ? 0 : 12, borderTop: sidebarOpen ? "none" : undefined, width: sidebarOpen ? "280px" : "auto" }}>
-            <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
-            <span className="flex-1 text-right">{sidebarOpen ? t("liveEvents") : t("events")}</span>
-            {sidebarOpen ? <ChevronDown size={14} style={{ color: "var(--text-muted)" }} /> : <ChevronUp size={14} style={{ color: "var(--text-muted)" }} />}
-          </button>
-          {sidebarOpen && (
-            <div className="w-[280px] max-h-[50vh] overflow-y-auto rounded-t-xl absolute bottom-full left-0"
-              style={{ background: "var(--bg-surface)", backdropFilter: "blur(16px)", border: "1px solid var(--border)", borderBottom: "none" }}>
-              <div className="p-2 space-y-1.5">
-                {visibleAlerts.length === 0 ? (
-                  <p className="text-xs text-center py-8" style={{ color: "var(--text-muted)" }}>{t("noEvents")}</p>
-                ) : visibleAlerts.map((alert) => {
-                  const color = TYPE_COLORS[alert.type] || "#5BA4E6";
-                  return (
-                    <button key={alert.id} onClick={() => openDrawer(alert)} className="w-full text-right rounded-lg p-3 transition relative overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                      <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[3px]`} style={{ backgroundColor: color, borderRadius: isAr ? "0 8px 8px 0" : "8px 0 0 8px" }} />
-                      <div className={isAr ? "pr-3" : "pl-3"}>
-                        <div className="flex items-center justify-between gap-2"><span className="text-xs font-bold" style={{ color }}>{cleanLabel(alert.type_label)}</span><span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{getTimeAgo(alert.created_at, isAr)}</span></div>
-                        <div className="text-sm mt-1 font-bold">{alert.area}</div>
-                        {alert.description && <div className="text-[11px] mt-1 line-clamp-1" style={{ color: "var(--text-secondary)" }}>{alert.description}</div>}
-                        <div className="text-[10px] mt-1.5" style={{ color: "var(--blue)" }}>{alert.created_at ? new Date(alert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: true }) : ""}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+        {/* Events side panel */}
+        <div className={`absolute top-0 ${isAr ? "left-0" : "right-0"} z-20 h-full flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
+          style={{ background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
+          {sidebarOpen && (<>
+            {/* Panel header */}
+            <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <h2 className="text-base font-extrabold">{visibleAlerts.length} {isAr ? "تنبيه" : "alerts"}</h2>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>{isAr ? "الأحداث النشطة على الخريطة" : "Active alerts on the map"}</p>
               </div>
+              <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}><XIcon size={14} /></button>
             </div>
-          )}
+            {/* Alert list */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {visibleAlerts.length === 0 ? (
+                <p className="text-xs text-center py-12" style={{ color: "var(--text-muted)" }}>{t("noEvents")}</p>
+              ) : visibleAlerts.map((alert) => {
+                const color = TYPE_COLORS[alert.type] || "#5BA4E6";
+                const typeLabel = isAr ? cleanLabel(alert.type_label) : (TYPE_LABELS_EN[alert.type] || cleanLabel(alert.type_label));
+                const timeAgo = getTimeAgo(alert.created_at, isAr);
+                const fullTime = alert.created_at ? new Date(alert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+                return (
+                  <button key={alert.id} onClick={() => { setDrawerAlert(alert); mapInstance.current?.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 }); }}
+                    className="w-full rounded-xl p-4 transition relative overflow-hidden group" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", textAlign: isAr ? "right" : "left" }}>
+                    <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[3px]`} style={{ backgroundColor: color }} />
+                    <div className={isAr ? "pr-3" : "pl-3"}>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color }}>{typeLabel}</span>
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{timeAgo} · {fullTime}</span>
+                      </div>
+                      <div className="text-[15px] font-extrabold leading-snug">{alert.type_label ? cleanLabel(alert.type_label) : ""} — {alert.area}</div>
+                      {alert.description && <div className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{alert.description}</div>}
+                      <div className="flex items-center gap-3 mt-2.5">
+                        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${SITE_URL}/?alert=${alert.id}`); }} className="text-[10px] flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+                          <Share2 size={10} /> {isAr ? "مشاركة" : "Share"}
+                        </button>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>)}
         </div>
+
+        {/* Events toggle button (when panel is closed) */}
+        {!sidebarOpen && (
+          <button onClick={() => { setSidebarOpen(true); setDrawerAlert(null); }}
+            className={`absolute ${isAr ? "left-3" : "right-3"} bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
+            <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
+            <span>{t("events")}</span>
+            <ChevronUp size={14} style={{ color: "var(--text-muted)" }} />
+          </button>
+        )}
 
         {/* Measure distance display */}
         {measureMode && (
@@ -953,77 +982,84 @@ export default function Home() {
           </div>
         )}
 
-        {/* Alert detail drawer */}
+        {/* Alert detail side panel */}
         {drawerAlert && (
-          <div className={`absolute bottom-0 ${isAr ? "right-0" : "left-0"} z-30 w-full md:w-96 bottom-sheet`}
-            style={{ background: "var(--bg-surface)", backdropFilter: "blur(16px)", borderTop: "1px solid var(--border)", borderRadius: "16px 16px 0 0", boxShadow: "var(--shadow-lg)", maxHeight: "60vh", overflowY: "auto" }}>
-            <div style={{ padding: "16px 20px" }}>
-              {/* Handle bar */}
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
-              {/* Close */}
-              <button onClick={() => setDrawerAlert(null)} className="absolute top-3" style={{ [isAr ? "left" : "right"]: "12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "8px", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-muted)" }}>
-                <XIcon size={13} />
-              </button>
-              {/* Type badge */}
-              <div className="mb-3">
-                <span className="px-3 py-1 rounded-lg text-xs font-bold" style={{ background: `${TYPE_COLORS[drawerAlert.type] || "#5BA4E6"}18`, color: TYPE_COLORS[drawerAlert.type] || "#5BA4E6", border: `1px solid ${TYPE_COLORS[drawerAlert.type] || "#5BA4E6"}30` }}>
-                  {isAr ? cleanLabel(drawerAlert.type_label) : (TYPE_LABELS_EN[drawerAlert.type] || cleanLabel(drawerAlert.type_label))}
-                </span>
-                {drawerAlert.is_urgent && <span className="mx-2 px-2 py-1 rounded text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>{t("urgent")}</span>}
+          <div className={`absolute top-0 ${isAr ? "left-0" : "right-0"} z-30 h-full w-full md:w-[400px] flex flex-col`}
+            style={{ background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
+            {/* Detail header */}
+            <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setDrawerAlert(null)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}><XIcon size={14} /></button>
+                <span className="text-sm font-extrabold">{isAr ? "تفاصيل التنبيه" : "Alert Details"}</span>
               </div>
-              {/* Area */}
-              <h2 className="text-xl font-extrabold mb-2">{drawerAlert.area}</h2>
-              {/* Description */}
-              <p className="text-sm leading-7 mb-4" style={{ color: "var(--text-secondary)" }}>{drawerAlert.description || t("noDetails")}</p>
+              <div className="flex gap-1.5">
+                {(() => { const idx = visibleAlerts.findIndex(a => a.id === drawerAlert.id); const prev = idx > 0 ? visibleAlerts[idx - 1] : null; const next = idx < visibleAlerts.length - 1 ? visibleAlerts[idx + 1] : null; return (<>
+                  <button onClick={() => prev && setDrawerAlert(prev)} disabled={!prev} className="w-8 h-8 flex items-center justify-center rounded-lg text-[10px]" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: prev ? "var(--text)" : "var(--text-muted)", cursor: prev ? "pointer" : "default", opacity: prev ? 1 : 0.4 }}>{isAr ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</button>
+                  <button onClick={() => next && setDrawerAlert(next)} disabled={!next} className="w-8 h-8 flex items-center justify-center rounded-lg text-[10px]" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: next ? "var(--text)" : "var(--text-muted)", cursor: next ? "pointer" : "default", opacity: next ? 1 : 0.4 }}>{isAr ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}</button>
+                </>); })()}
+              </div>
+            </div>
+            {/* Detail body */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Alert card */}
+              <div className="p-5 relative" style={{ borderBottom: "1px solid var(--border)" }}>
+                <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[4px]`} style={{ backgroundColor: TYPE_COLORS[drawerAlert.type] || "#5BA4E6" }} />
+                <div className={isAr ? "pr-3" : "pl-3"}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-md" style={{ background: `${TYPE_COLORS[drawerAlert.type] || "#5BA4E6"}15`, color: TYPE_COLORS[drawerAlert.type] || "#5BA4E6" }}>
+                      {isAr ? cleanLabel(drawerAlert.type_label) : (TYPE_LABELS_EN[drawerAlert.type] || cleanLabel(drawerAlert.type_label))}
+                    </span>
+                    <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{getTimeAgo(drawerAlert.created_at, isAr)} · {drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : ""}</span>
+                  </div>
+                  <h2 className="text-lg font-extrabold mb-1">{cleanLabel(drawerAlert.type_label)} — {drawerAlert.area}</h2>
+                  {drawerAlert.description && <p className="text-xs leading-7 mt-2" style={{ color: "var(--text-secondary)" }}>{drawerAlert.description}</p>}
+                  <div className="mt-3">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: drawerAlert.status === "active" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: drawerAlert.status === "active" ? "#22C55E" : "#EF4444", border: `1px solid ${drawerAlert.status === "active" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                      ● {drawerAlert.status === "active" ? (isAr ? "نشط" : "ACTIVE") : (isAr ? "منتهي" : "EXPIRED")}
+                    </span>
+                  </div>
+                </div>
+              </div>
               {/* Image */}
-              {drawerAlert.image_url && <img src={drawerAlert.image_url} className="w-full rounded-xl mb-4" style={{ maxHeight: "200px", objectFit: "cover" }} />}
-              {/* Mini map */}
-              <div className="rounded-xl overflow-hidden mb-4" style={{ border: "1px solid var(--border)" }}>
-                <img
-                  src={`https://api.maptiler.com/maps/${theme === "light" ? "streets-v2" : "streets-v2-dark"}/static/${drawerAlert.lng},${drawerAlert.lat},13/360x140@2x.png?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}&markers=color:${encodeURIComponent(TYPE_COLORS[drawerAlert.type] || "#E53935")}|${drawerAlert.lng},${drawerAlert.lat}`}
-                  alt="" className="w-full" style={{ display: "block", height: "140px", objectFit: "cover" }} loading="lazy"
-                />
-              </div>
-              {/* Meta grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "وقت النشر" : "Published"}</div>
-                  <div className="text-sm font-bold" style={{ color: "var(--blue)" }}>{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleTimeString(isAr ? "ar-LB" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—"}</div>
+              {drawerAlert.image_url && <img src={drawerAlert.image_url} className="w-full" style={{ maxHeight: "200px", objectFit: "cover" }} />}
+              {/* Info rows */}
+              <div style={{ borderBottom: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <span className="text-xs flex items-center gap-2" style={{ color: "var(--text-muted)" }}>📍 {isAr ? "النوع" : "Type"}</span>
+                  <span className="text-xs font-bold">{isAr ? cleanLabel(drawerAlert.type_label) : (TYPE_LABELS_EN[drawerAlert.type] || cleanLabel(drawerAlert.type_label))}</span>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "التاريخ" : "Date"}</div>
-                  <div className="text-sm font-bold">{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleDateString(isAr ? "ar-LB" : "en-US", { day: "numeric", month: "short", year: "numeric" }) : "—"}</div>
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <span className="text-xs flex items-center gap-2" style={{ color: "var(--text-muted)" }}>🕐 {isAr ? "الوقت" : "Time"}</span>
+                  <span className="text-xs font-bold" dir="ltr">{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—"} · {drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}</span>
                 </div>
               </div>
-              {/* Share buttons */}
-              <div className="grid grid-cols-3 gap-2">
-                <a href={`https://wa.me/?text=${encodeURIComponent(`🚨 ${drawerAlert.area}
-${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  WhatsApp
-                </a>
-                <a href={`https://t.me/share/url?url=${encodeURIComponent(`${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  Telegram
-                </a>
-                <button onClick={() => { navigator.clipboard.writeText(`${SITE_URL}/?alert=${drawerAlert.id}`); }}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  {isAr ? "نسخ" : "Copy"}
-                </button>
+              {/* Coordinates */}
+              <div className="px-5 pt-2 pb-1">
+                <p className="text-[10px] font-bold tracking-wider" style={{ color: "var(--text-muted)", textAlign: isAr ? "left" : "right" }}>{isAr ? "الإحداثيات" : "Coordinates"}</p>
               </div>
-              {/* Related alerts in same area */}
+              <div style={{ borderBottom: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Latitude</span>
+                  <span className="text-xs font-mono font-bold" dir="ltr">{drawerAlert.lat.toFixed(6)}</span>
+                </div>
+                <div className="flex items-center justify-between px-5 py-3">
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Longitude</span>
+                  <span className="text-xs font-mono font-bold" dir="ltr">{drawerAlert.lng.toFixed(6)}</span>
+                </div>
+              </div>
+              {/* Related alerts */}
               {(() => {
-                const related = alerts.filter(a => a.id !== drawerAlert.id && a.area === drawerAlert.area).slice(0, 3);
+                const related = visibleAlerts.filter(a => a.id !== drawerAlert.id && a.area === drawerAlert.area).slice(0, 3);
                 if (related.length === 0) return null;
                 return (
-                  <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
-                    <p className="text-[10px] font-bold mb-2 tracking-wider" style={{ color: "var(--text-muted)" }}>{isAr ? "أحداث أخرى في المنطقة" : "Other alerts in this area"}</p>
+                  <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <p className="text-[10px] font-bold tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>{isAr ? "أحداث أخرى في المنطقة" : "Other alerts nearby"}</p>
                     <div className="space-y-2">
                       {related.map(r => (
                         <button key={r.id} onClick={() => { setDrawerAlert(r); mapInstance.current?.flyTo({ center: [r.lng, r.lat], zoom: 13.5 }); }}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-lg text-xs" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                          className="w-full flex items-center gap-3 p-2.5 rounded-lg text-xs" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", textAlign: isAr ? "right" : "left" }}>
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TYPE_COLORS[r.type] || "#5BA4E6" }} />
-                          <span className="font-bold flex-1 truncate" style={{ textAlign: isAr ? "right" : "left" }}>{isAr ? cleanLabel(r.type_label) : (TYPE_LABELS_EN[r.type] || cleanLabel(r.type_label))}</span>
+                          <span className="font-bold flex-1 truncate">{r.area}</span>
                           <span style={{ color: "var(--text-muted)" }}>{r.created_at ? new Date(r.created_at).toLocaleTimeString(isAr ? "ar-LB" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : ""}</span>
                         </button>
                       ))}
@@ -1031,6 +1067,40 @@ ${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
                   </div>
                 );
               })()}
+            </div>
+            {/* Share button */}
+            <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid var(--border)" }}>
+              <button onClick={() => {
+                const url = `${SITE_URL}/?alert=${drawerAlert.id}`;
+                if (navigator.share) navigator.share({ title: drawerAlert.area, url }).catch(() => {});
+                else navigator.clipboard.writeText(url);
+              }} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold" style={{ background: "var(--accent)", color: "white" }}>
+                <Share2 size={14} /> {isAr ? "مشاركة التنبيه" : "Share Alert"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Support popup — shows once after 5 minutes */}
+        {showSupportPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+            <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+              <div className="p-6 text-center">
+                <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl" style={{ background: "rgba(229,57,53,0.08)" }}>❤️</div>
+                <h3 className="text-lg font-extrabold mb-2">{isAr ? "ادعم البيان الإخباري" : "Support AlBayan"}</h3>
+                <p className="text-sm leading-7 mb-5" style={{ color: "var(--text-secondary)" }}>
+                  {isAr ? "نقدم هذه الخدمة مجاناً وبدون إعلانات. مساهمتك تساعدنا على الاستمرار في تقديم تنبيهات دقيقة وسريعة." : "We provide this service for free with no ads. Your contribution helps us continue delivering accurate, fast alerts."}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <a href="/donate" className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--accent)", color: "white" }}>
+                    {isAr ? "تبرع الآن" : "Donate"}
+                  </a>
+                  <button onClick={() => { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} }}
+                    className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                    {isAr ? "لاحقاً" : "Later"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
