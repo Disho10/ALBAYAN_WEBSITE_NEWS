@@ -193,6 +193,7 @@ export default function AdminPage() {
     return () => { listener.subscription.unsubscribe(); };
   }, [loadAlerts]);
 
+  useEffect(() => { try { const t = localStorage.getItem("albayan-templates"); if (t) setTemplates(JSON.parse(t)); } catch {} }, []);
   useEffect(() => { fetch("/data/areas.json").then((r) => r.json()).then(setAllAreas).catch(() => {}); }, []);
 
   async function handleLogin() {
@@ -277,6 +278,67 @@ export default function AdminPage() {
     });
   }, [alerts, listSearch, listTypeFilter, listStatusFilter]);
   const isFormReady = useCoords ? (!!coordName.trim() && !!coordLat && !!coordLng) : selectedAreas.length > 0;
+
+  /* ── Helper functions for bulk edit, templates, duplication, activity log ── */
+  function addLog(action: string, area: string) {
+    const entry = { action, area, time: new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }) };
+    setActivityLog(prev => [entry, ...prev].slice(0, 50));
+  }
+
+  function saveTemplate() {
+    const name = prompt("اسم القالب:");
+    if (!name) return;
+    const t: Template = { name, type, description, duration, radius, isUrgent };
+    const updated = [...templates, t];
+    setTemplates(updated);
+    try { localStorage.setItem("albayan-templates", JSON.stringify(updated)); } catch {}
+  }
+
+  function loadTemplate(t: Template) {
+    setType(t.type); setDescription(t.description); setDuration(t.duration); setRadius(t.radius); setIsUrgent(t.isUrgent);
+  }
+
+  function deleteTemplate(idx: number) {
+    const updated = templates.filter((_: Template, i: number) => i !== idx);
+    setTemplates(updated);
+    try { localStorage.setItem("albayan-templates", JSON.stringify(updated)); } catch {}
+  }
+
+  function duplicateAlert(alert: AlertItem) {
+    setType(alert.type);
+    setDescription(alert.description || "");
+    setIsUrgent(alert.is_urgent || false);
+    setRadius(String(alert.radius || 900));
+    addLog("تكرار", alert.area);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  function selectAllFiltered() {
+    if (selectedIds.size === filteredAlerts.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredAlerts.map(a => a.id)));
+  }
+
+  async function bulkAction(action: "delete" | "hide" | "urgent") {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    if (action === "delete") {
+      if (!confirm(`حذف ${ids.length} حدث؟`)) return;
+      await supabase.from("alerts").delete().in("id", ids);
+      addLog(`حذف جماعي (${ids.length})`, "متعدد");
+    } else if (action === "hide") {
+      await supabase.from("alerts").update({ status: "hidden" }).in("id", ids);
+      addLog(`إخفاء جماعي (${ids.length})`, "متعدد");
+    } else if (action === "urgent") {
+      await supabase.from("alerts").update({ is_urgent: true }).in("id", ids);
+      addLog(`عاجل جماعي (${ids.length})`, "متعدد");
+    }
+    setSelectedIds(new Set());
+    loadAlerts();
+  }
 
   /* ── Loading ─────────────────────────────────────────────── */
   if (authLoading) return (

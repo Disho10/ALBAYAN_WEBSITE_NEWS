@@ -358,6 +358,8 @@ export default function Home() {
     if (!measureMode) return;
 
     function handleClick(e: maplibregl.MapMouseEvent) {
+      const m = mapInstance.current;
+      if (!m) return;
       const point: [number, number] = [e.lngLat.lng, e.lngLat.lat];
       setMeasurePoints(prev => {
         const next = [...prev, point].slice(-2) as [number, number][];
@@ -365,21 +367,21 @@ export default function Home() {
         const el = document.createElement("div");
         el.style.cssText = "width:10px;height:10px;background:#F59E0B;border:2px solid white;border-radius:50%;box-shadow:0 0 6px rgba(245,158,11,0.5)";
         if (measureMarkersRef.current.length >= 2) {
-          measureMarkersRef.current.forEach(m => m.remove());
+          measureMarkersRef.current.forEach(mk => mk.remove());
           measureMarkersRef.current = [];
         }
-        measureMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat(point).addTo(map));
+        measureMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat(point).addTo(m));
 
         // Draw line if 2 points
         if (next.length === 2) {
           const lineId = "measure-line";
-          if (map.getLayer(lineId)) map.removeLayer(lineId);
-          if (map.getSource(lineId)) map.removeSource(lineId);
-          map.addSource(lineId, {
+          if (m.getLayer(lineId)) m.removeLayer(lineId);
+          if (m.getSource(lineId)) m.removeSource(lineId);
+          m.addSource(lineId, {
             type: "geojson",
             data: { type: "Feature", geometry: { type: "LineString", coordinates: next }, properties: {} }
           });
-          map.addLayer({
+          m.addLayer({
             id: lineId, type: "line", source: lineId,
             paint: { "line-color": "#F59E0B", "line-width": 2, "line-dasharray": [4, 4] }
           });
