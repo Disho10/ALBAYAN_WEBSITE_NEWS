@@ -17,6 +17,7 @@ const FEATURE_ICONS = [
 export default function DonatePage() {
   const [copied, setCopied] = useState(false);
   const { lang } = useApp();
+  const isAr = lang === "ar";
 
   const c = lang === "ar" ? {
     eyebrow: "ادعمنا",
@@ -172,6 +173,29 @@ export default function DonatePage() {
                   style={copied ? {} : { background: "var(--accent)" }}>
                   {copied ? <><Check size={18} />{c.copiedBtn}</> : <><Copy size={18} />{c.copyBtn}</>}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional payment methods */}
+          <div className="max-w-md mx-auto mt-6 grid grid-cols-1 gap-4">
+            <div className="rounded-2xl p-6 text-center" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center text-lg" style={{ background: "var(--blue-soft)" }}>💵</div>
+              <h3 className="text-lg font-bold mb-2">OMT</h3>
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>{isAr ? "يمكنك إرسال تحويل عبر أي فرع OMT في لبنان" : "Send a transfer via any OMT branch in Lebanon"}</p>
+              <div className="rounded-xl py-3 px-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>{isAr ? "الاسم" : "Name"}</p>
+                <div className="text-lg font-extrabold" dir="ltr">Ali Disho</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-6 text-center" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center text-lg" style={{ background: "rgba(245,158,11,0.10)" }}>₮</div>
+              <h3 className="text-lg font-bold mb-2">USDT (TRC20)</h3>
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>{isAr ? "تبرع بالعملات الرقمية عبر شبكة Tron" : "Donate with crypto via the Tron network"}</p>
+              <div className="rounded-xl py-3 px-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>{isAr ? "عنوان المحفظة" : "Wallet Address"}</p>
+                <div className="text-xs font-mono font-bold break-all" dir="ltr" style={{ color: "var(--text-secondary)" }}>{isAr ? "يُحدّث قريباً" : "Coming soon"}</div>
               </div>
             </div>
           </div>

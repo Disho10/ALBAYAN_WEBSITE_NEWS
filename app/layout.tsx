@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import ThemeProvider from "@/app/components/ThemeProvider";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const dubai = localFont({
   src: [
@@ -16,9 +14,8 @@ const dubai = localFont({
 
 export const metadata: Metadata = {
   title: "البيان الإخباري — من قلب الحدث",
-  description:
-    "منصة ميدانية مستقلة لعرض التنبيهات والأحداث المهمة على الخريطة بشكل مباشر في لبنان. تابع الغارات، التهديدات، والتحديثات الميدانية لحظة بلحظة.",
-  keywords: ["البيان", "خريطة", "تنبيهات", "لبنان", "أخبار", "ميدانية", "AlBayan", "Lebanon", "alerts", "map"],
+  description: "منصة ميدانية مستقلة لعرض التنبيهات والأحداث المهمة على الخريطة بشكل مباشر في لبنان.",
+  keywords: ["البيان", "خريطة", "تنبيهات", "لبنان", "أخبار", "AlBayan", "Lebanon", "alerts", "map"],
   manifest: "/manifest.json",
   openGraph: {
     title: "البيان الإخباري — من قلب الحدث",
@@ -27,8 +24,14 @@ export const metadata: Metadata = {
     locale: "ar_LB",
     url: "https://albayan-lb.com",
     siteName: "البيان الإخباري",
+    images: [{ url: "https://albayan-lb.com/og-image.png", width: 1200, height: 630, alt: "البيان الإخباري" }],
   },
-  twitter: { card: "summary_large_image", title: "البيان الإخباري", description: "خريطة التنبيهات المباشرة — لبنان" },
+  twitter: {
+    card: "summary_large_image",
+    title: "البيان الإخباري",
+    description: "خريطة التنبيهات المباشرة — لبنان",
+    images: ["https://albayan-lb.com/og-image.png"],
+  },
   other: { "apple-mobile-web-app-capable": "yes", "apple-mobile-web-app-status-bar-style": "black-translucent" },
 };
 
@@ -43,8 +46,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={dubai.className}>
         <ThemeProvider>{children}</ThemeProvider>
-        <Analytics />  
-        <SpeedInsights />
       </body>
     </html>
   );

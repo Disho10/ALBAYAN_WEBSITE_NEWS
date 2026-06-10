@@ -48,6 +48,9 @@ export default function FAQPage() {
         <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>
           {isAr ? "صفحة مخصصة للإجابة على أكثر الأسئلة شيوعًا حول المنصة." : "Answers to the most frequently asked questions about the platform."}
         </p>
+        <div className="mt-4 inline-block rounded-xl px-4 py-2 text-xs" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+          {isAr ? "آخر تحديث: يونيو 2026" : "Last updated: June 2026"}
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto space-y-3 mb-12">

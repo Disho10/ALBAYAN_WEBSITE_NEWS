@@ -673,8 +673,8 @@ export default function Home() {
             <Link href="/donate" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>{t("supportUs")}</Link>
             <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>{t("telegram")}</a>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--green-soft)", color: "var(--green)" }}>{t("whatsapp")}</a>
-            <Link href="/history" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--bg-card)" }}>History</Link>
-            <Link href="/stats" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--bg-card)" }}>Stats</Link>
+            <Link href="/history" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--bg-card)" }}>{isAr ? "سجل التنبيهات" : "History"}</Link>
+            <Link href="/stats" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--bg-card)" }}>{isAr ? "إحصائيات" : "Stats"}</Link>
             <Link href="/settings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-center text-sm font-bold" style={{ background: "var(--bg-card)" }}>{t("settings")}</Link>
           </div>
         )}
@@ -825,9 +825,9 @@ export default function Home() {
           <span className="mx-2">|</span>
           <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-emerald-500" />{t("live")}</span>
           <span className="mx-2">|</span>
-          <Link href="/history" className="hover:underline">History</Link>
+          <Link href="/history" className="hover:underline">{isAr ? "سجل" : "History"}</Link>
           <span className="mx-2">|</span>
-          <Link href="/stats" className="hover:underline">Stats</Link>
+          <Link href="/stats" className="hover:underline">{isAr ? "إحصائيات" : "Stats"}</Link>
         </div>
       </div>
     </main>
