@@ -149,7 +149,8 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const headline = `#${hashTag(alert.type_label)} في ${placeWord(alert.area)} #${alert.area}`;
   const shareTextWA = encodeURIComponent(`${headline}\n\nالتفاصيل الكاملة:\n${rawUrl}`);
   const shareTextTG = encodeURIComponent(`${headline}\n\nالتفاصيل الكاملة:\n${rawUrl}`);
-  const remainLabel = isAr ? "المدة المتبقية" : "Remaining";
+  const pubLabel = isAr ? "وقت النشر" : "Published";
+  const pubTime = alert.created_at ? new Date(alert.created_at).toLocaleTimeString(isAr ? "ar-LB" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
   const noDesc = isAr ? "لا توجد تفاصيل إضافية." : "No additional details.";
   const copiedLabel = isAr ? "✓ تم" : "✓ Done";
   const dir = isAr ? "rtl" : "ltr";
@@ -166,8 +167,8 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
       <p style="margin:0;color:${muted};font-size:13px;line-height:1.9;">${alert.description ? escapeHtml(alert.description) : noDesc}</p>
       ${imgHtml}
       <div style="margin-top:14px;background:${sub};border:1px solid ${border};border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="color:${muted};font-size:11px;font-weight:600;">${remainLabel}</span>
-        <span style="color:#F59E0B;font-weight:700;font-size:13px;">${remaining}</span>
+        <span style="color:${muted};font-size:11px;font-weight:600;">${pubLabel}</span>
+        <span style="color:#5BA4E6;font-weight:700;font-size:13px;">${pubTime}</span>
       </div>
       <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
         <a href="https://wa.me/?text=${shareTextWA}" target="_blank" rel="noopener" style="${btnStyle}">
@@ -898,7 +899,7 @@ export default function Home() {
                         <div className="flex items-center justify-between gap-2"><span className="text-xs font-bold" style={{ color }}>{cleanLabel(alert.type_label)}</span><span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{getTimeAgo(alert.created_at, isAr)}</span></div>
                         <div className="text-sm mt-1 font-bold">{alert.area}</div>
                         {alert.description && <div className="text-[11px] mt-1 line-clamp-1" style={{ color: "var(--text-secondary)" }}>{alert.description}</div>}
-                        <div className="text-[10px] mt-1.5" style={{ color: "#F59E0B" }}>{t("expiresIn")} {getRemainingTime(alert.expires_at, isAr)}</div>
+                        <div className="text-[10px] mt-1.5" style={{ color: "var(--blue)" }}>{alert.created_at ? new Date(alert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: true }) : ""}</div>
                       </div>
                     </button>
                   );
@@ -946,12 +947,12 @@ export default function Home() {
               {/* Meta grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{t("remainingTime")}</div>
-                  <div className="text-sm font-bold" style={{ color: "#F59E0B" }}>{getRemainingTime(drawerAlert.expires_at, isAr)}</div>
+                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "وقت النشر" : "Published"}</div>
+                  <div className="text-sm font-bold" style={{ color: "var(--blue)" }}>{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleTimeString(isAr ? "ar-LB" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—"}</div>
                 </div>
                 <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "وقت الإنشاء" : "Created"}</div>
-                  <div className="text-sm font-bold">{getTimeAgo(drawerAlert.created_at, isAr)}</div>
+                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "التاريخ" : "Date"}</div>
+                  <div className="text-sm font-bold">{drawerAlert.created_at ? new Date(drawerAlert.created_at).toLocaleDateString(isAr ? "ar-LB" : "en-US", { day: "numeric", month: "short", year: "numeric" }) : "—"}</div>
                 </div>
               </div>
               {/* Share buttons */}

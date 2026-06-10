@@ -709,8 +709,8 @@ export default function AdminPage() {
                           </div>
                         )}
                         <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
-                          <Clock size={10} color="#F59E0B" />
-                          <span style={{ fontSize: "11px", color: "#F59E0B", fontWeight: 600 }}>{getRemainingTime(alert.expires_at)}</span>
+                          <Clock size={10} color="#5BA4E6" />
+                          <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 600 }}>{alert.created_at ? new Date(alert.created_at).toLocaleString("ar-LB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</span>
                         </div>
                       </div>
                       {/* Action buttons */}
