@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowLeft, Check, Clock, Edit3, Eye,
-  EyeOff, LogOut, MapPin, RefreshCw, Search, Send, Shield, Trash2, X, Zap, Radio,
+  EyeOff, LogOut, MapPin, RefreshCw, Search, Send, Shield, Trash2, X, Zap, Radio, Copy, Ruler, FileText, List,
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem, Area } from "@/app/lib/types";
@@ -31,6 +31,9 @@ const TYPE_COLOR: Record<string, string> = {
   traffic: "#38BDF8", crowd: "#DC2626", fire: "#F97316", injuries: "#E11D48",
   quadcopter: "#06B6D4", helicopter: "#64748B", warplanes: "#6366F1",
 };
+
+type Template = { name: string; type: string; description: string; duration: string; radius: string; isUrgent: boolean };
+type LogEntry = { action: string; area: string; time: string };
 
 const DURATION_OPTIONS = [
   { value: "30", label: "30 دقيقة" },
@@ -137,6 +140,11 @@ export default function AdminPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editDuration, setEditDuration] = useState("keep");
   const [editIsUrgent, setEditIsUrgent] = useState(false);
+  const [editRadius, setEditRadius] = useState("900");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [activityLog, setActivityLog] = useState<LogEntry[]>([]);
+  const [showLog, setShowLog] = useState(false);
   const [listSearch, setListSearch] = useState("");
   const [listTypeFilter, setListTypeFilter] = useState("all");
   const [listStatusFilter, setListStatusFilter] = useState("all");
@@ -552,6 +560,19 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* Templates */}
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" as const, marginBottom: "10px" }}>
+                <button onClick={saveTemplate} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", background: "rgba(91,164,230,0.07)", border: "1px solid rgba(91,164,230,0.18)", borderRadius: "10px", padding: "9px", color: "#5BA4E6", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <FileText size={12} />حفظ كقالب
+                </button>
+                {templates.length > 0 && templates.map((t, i) => (
+                  <button key={i} onClick={() => loadTemplate(t)} onContextMenu={(e) => { e.preventDefault(); deleteTemplate(i); }}
+                    style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(30,51,80,0.45)", border: "1px solid #1E3350", borderRadius: "10px", padding: "7px 12px", color: "#94A3B8", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    title="اضغط لتحميل · اضغط يمين لحذف">
+                    {t.name}
+                  </button>
+                ))}
+              </div>
               {/* Publish button */}
               <button onClick={publishAlert} disabled={publishing || !isFormReady}
                 style={{ width: "100%", background: publishing || !isFormReady ? "rgba(30,51,80,0.55)" : "linear-gradient(135deg, #E53935 0%, #C62828 100%)", border: `1px solid ${publishing || !isFormReady ? "#1E3350" : "rgba(229,57,53,0.25)"}`, borderRadius: "12px", padding: "13px", color: publishing || !isFormReady ? "#5A6B80" : "white", fontSize: "14px", fontWeight: 800, cursor: publishing || !isFormReady ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: publishing || !isFormReady ? "none" : "0 4px 20px rgba(229,57,53,0.28)", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
@@ -573,6 +594,8 @@ export default function AdminPage() {
             {/* List header */}
             <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid #1E3350", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <input type="checkbox" checked={selectedIds.size > 0 && selectedIds.size === filteredAlerts.length} onChange={selectAllFiltered}
+                  style={{ width: "14px", height: "14px", cursor: "pointer", accentColor: "#5BA4E6" }} />
                 <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#5BA4E6", display: "inline-block" }} />
                 <h2 style={{ fontSize: "14px", fontWeight: 800, margin: 0 }}>إدارة الأحداث</h2>
                 {alerts.length > 0 && (
@@ -622,6 +645,23 @@ export default function AdminPage() {
               <span style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 600 }}>{filteredAlerts.length} نتيجة</span>
             </div>
 
+            {/* Bulk action bar */}
+            {selectedIds.size > 0 && (
+              <div style={{ padding: "8px 16px", borderBottom: "1px solid #1E3350", display: "flex", gap: "6px", alignItems: "center", background: "rgba(91,164,230,0.04)" }}>
+                <span style={{ fontSize: "11px", color: "#5BA4E6", fontWeight: 700 }}>{selectedIds.size} محدد</span>
+                <button onClick={() => bulkAction("hide")} style={{ background: "rgba(90,107,128,0.07)", border: "1px solid rgba(90,107,128,0.18)", borderRadius: "6px", padding: "4px 10px", color: "#5A6B80", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <EyeOff size={10} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "4px" }} />إخفاء
+                </button>
+                <button onClick={() => bulkAction("urgent")} style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: "6px", padding: "4px 10px", color: "#EF4444", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Zap size={10} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "4px" }} />عاجل
+                </button>
+                <button onClick={() => bulkAction("delete")} style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: "6px", padding: "4px 10px", color: "#EF4444", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <Trash2 size={10} style={{ display: "inline", verticalAlign: "-1px", marginLeft: "4px" }} />حذف
+                </button>
+                <button onClick={() => setSelectedIds(new Set())} style={{ background: "transparent", border: "none", color: "#5A6B80", fontSize: "11px", cursor: "pointer", fontFamily: "inherit" }}>إلغاء</button>
+              </div>
+            )}
+
             {/* List body */}
             {filteredAlerts.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 24px", textAlign: "center" }}>
@@ -637,6 +677,11 @@ export default function AdminPage() {
                   return (
                     <div key={alert.id} className="adm-row"
                       style={{ display: "flex", alignItems: "stretch", borderBottom: "1px solid #1E3350", opacity: isHidden ? 0.45 : 1, transition: "opacity 0.2s, background 0.12s", background: "transparent" }}>
+                      {/* Checkbox */}
+                      <div style={{ display: "flex", alignItems: "center", padding: "0 0 0 8px" }}>
+                        <input type="checkbox" checked={selectedIds.has(alert.id)} onChange={() => toggleSelect(alert.id)}
+                          style={{ width: "14px", height: "14px", cursor: "pointer", accentColor: "#5BA4E6" }} />
+                      </div>
                       {/* Color stripe */}
                       <div style={{ width: "3px", background: c, flexShrink: 0 }} />
                       {/* Content */}
@@ -689,6 +734,10 @@ export default function AdminPage() {
                           style={{ width: "30px", height: "30px", background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.14)", borderRadius: "7px", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.13s" }}>
                           <Trash2 size={12} />
                         </button>
+                        <button onClick={() => duplicateAlert(alert)} title="تكرار" className="adm-icon-btn"
+                          style={{ width: "30px", height: "30px", background: "rgba(91,164,230,0.05)", border: "1px solid rgba(91,164,230,0.14)", borderRadius: "7px", color: "#5BA4E6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.13s" }}>
+                          <Copy size={12} />
+                        </button>
                       </div>
                     </div>
                   );
@@ -696,6 +745,35 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Activity Log */}
+        <div style={{ background: "#0F1D30", border: "1px solid #1E3350", borderRadius: "20px", overflow: "hidden", marginTop: "24px" }}>
+          <button onClick={() => setShowLog(!showLog)}
+            style={{ width: "100%", padding: "14px 22px", borderBottom: showLog ? "1px solid #1E3350" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <List size={13} color="#5BA4E6" />
+              <span style={{ fontSize: "13px", fontWeight: 800, color: "#F1F5F9" }}>سجل النشاط</span>
+              {activityLog.length > 0 && <span style={{ background: "rgba(91,164,230,0.1)", border: "1px solid rgba(91,164,230,0.22)", borderRadius: "5px", padding: "1px 6px", fontSize: "10px", color: "#5BA4E6", fontWeight: 700 }}>{activityLog.length}</span>}
+            </div>
+            <span style={{ color: "#5A6B80", fontSize: "11px" }}>{showLog ? "▲" : "▼"}</span>
+          </button>
+          {showLog && (
+            <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+              {activityLog.length === 0 ? (
+                <div style={{ padding: "32px", textAlign: "center", color: "#5A6B80", fontSize: "12px" }}>لا يوجد نشاط بعد</div>
+              ) : activityLog.map((log, i) => (
+                <div key={i} style={{ padding: "10px 22px", borderBottom: "1px solid #1E3350", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Activity size={11} color="#5A6B80" />
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#F1F5F9" }}>{log.action}</span>
+                    <span style={{ fontSize: "11px", color: "#5A6B80" }}>— {log.area}</span>
+                  </div>
+                  <span style={{ fontSize: "10px", color: "#5A6B80" }}>{log.time}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ padding: "20px 0" }}><Footer /></div>
@@ -732,6 +810,14 @@ export default function AdminPage() {
                   <option value="keep">إبقاء المدة الحالية</option>
                   {DURATION_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
+              </div>
+              <div>
+                <div style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>نطاق التأثير (متر)</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <input type="range" min="500" max="10000" step="100" value={editRadius} onChange={(e) => setEditRadius(e.target.value)}
+                    style={{ flex: 1, accentColor: "#5BA4E6" }} />
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#5BA4E6", minWidth: "50px", textAlign: "center" as const }}>{editRadius}m</span>
+                </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.11)", borderRadius: "10px", padding: "12px 14px" }}>
                 <div>

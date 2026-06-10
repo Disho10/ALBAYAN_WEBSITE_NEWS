@@ -6,7 +6,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   Settings, Menu, X, LocateFixed, ChevronUp, ChevronDown,
-  Sun, Moon, Layers, Filter, Plus, Minus, Search, Share2, Clock,
+  Sun, Moon, Layers, Filter, Plus, Minus, Search, Share2, Clock, Ruler, X as XIcon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem, Area } from "@/app/lib/types";
@@ -245,6 +245,15 @@ export default function Home() {
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [, forceUpdate] = useState(0);
 
+  /* Distance measurement */
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+  const measureMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const measureLineRef = useRef<string | null>(null);
+
+  /* Alert detail drawer */
+  const [drawerAlert, setDrawerAlert] = useState<AlertItem | null>(null);
+
   /* Search */
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -323,6 +332,86 @@ export default function Home() {
       el.style.cssText = "width:14px;height:14px;background:#3B82F6;border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(59,130,246,0.2)";
       userMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat([longitude, latitude]).addTo(map);
     }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+  }
+
+  /* ── Distance measurement ─────────────────────────── */
+  function toggleMeasure() {
+    if (measureMode) {
+      // Clear measurement
+      measureMarkersRef.current.forEach(m => m.remove());
+      measureMarkersRef.current = [];
+      setMeasurePoints([]);
+      const map = mapInstance.current;
+      if (map && measureLineRef.current) {
+        if (map.getLayer(measureLineRef.current)) map.removeLayer(measureLineRef.current);
+        if (map.getSource(measureLineRef.current)) map.removeSource(measureLineRef.current);
+        measureLineRef.current = null;
+      }
+    }
+    setMeasureMode(!measureMode);
+  }
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !mapReady) return;
+    if (!measureMode) return;
+
+    function handleClick(e: maplibregl.MapMouseEvent) {
+      const point: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+      setMeasurePoints(prev => {
+        const next = [...prev, point].slice(-2) as [number, number][];
+        // Add marker
+        const el = document.createElement("div");
+        el.style.cssText = "width:10px;height:10px;background:#F59E0B;border:2px solid white;border-radius:50%;box-shadow:0 0 6px rgba(245,158,11,0.5)";
+        if (measureMarkersRef.current.length >= 2) {
+          measureMarkersRef.current.forEach(m => m.remove());
+          measureMarkersRef.current = [];
+        }
+        measureMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat(point).addTo(map));
+
+        // Draw line if 2 points
+        if (next.length === 2) {
+          const lineId = "measure-line";
+          if (map.getLayer(lineId)) map.removeLayer(lineId);
+          if (map.getSource(lineId)) map.removeSource(lineId);
+          map.addSource(lineId, {
+            type: "geojson",
+            data: { type: "Feature", geometry: { type: "LineString", coordinates: next }, properties: {} }
+          });
+          map.addLayer({
+            id: lineId, type: "line", source: lineId,
+            paint: { "line-color": "#F59E0B", "line-width": 2, "line-dasharray": [4, 4] }
+          });
+          measureLineRef.current = lineId;
+        }
+        return next;
+      });
+    }
+
+    map.on("click", handleClick);
+    map.getCanvas().style.cursor = "crosshair";
+    return () => {
+      map.off("click", handleClick);
+      map.getCanvas().style.cursor = "";
+    };
+  }, [measureMode, mapReady]);
+
+  const measureDistance = useMemo(() => {
+    if (measurePoints.length !== 2) return null;
+    const [a, b] = measurePoints;
+    const R = 6371;
+    const dLat = (b[1] - a[1]) * Math.PI / 180;
+    const dLon = (b[0] - a[0]) * Math.PI / 180;
+    const lat1 = a[1] * Math.PI / 180, lat2 = b[1] * Math.PI / 180;
+    const x = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const dist = R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+    return dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`;
+  }, [measurePoints]);
+
+  function openDrawer(alert: AlertItem) {
+    setDrawerAlert(alert);
+    const map = mapInstance.current;
+    if (map) map.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 });
   }
 
   function zoomIn() { mapInstance.current?.zoomIn({ duration: 300 }); }
@@ -558,7 +647,7 @@ export default function Home() {
           const f = e.features?.[0]; if (!f) return;
           (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id).then((zoom) => {
             const coords = (f.geometry as any).coordinates;
-            map.easeTo({ center: coords, zoom });
+            map.easeTo({ center: coords, zoom: zoom + 0.5, duration: 500, easing: (t) => t * (2 - t) });
           });
         });
         map.on("click", "strike-unclustered", (e) => {
@@ -780,6 +869,7 @@ export default function Home() {
           <button onClick={zoomIn} className="map-btn" title={t("zoomIn")}><Plus size={16} /></button>
           <button onClick={zoomOut} className="map-btn" title={t("zoomOut")}><Minus size={16} /></button>
           <button onClick={locateUser} className="map-btn" title={t("myLocation")} style={{ color: "var(--blue)" }}><LocateFixed size={16} /></button>
+          <button onClick={toggleMeasure} className="map-btn" title={isAr ? "قياس المسافة" : "Measure distance"} style={{ color: measureMode ? "#F59E0B" : "var(--text-secondary)", background: measureMode ? "rgba(245,158,11,0.1)" : "var(--bg-surface)" }}><Ruler size={16} /></button>
         </div>
 
         {/* Legend is now inside the Layers panel */}
@@ -802,7 +892,7 @@ export default function Home() {
                 ) : visibleAlerts.map((alert) => {
                   const color = TYPE_COLORS[alert.type] || "#5BA4E6";
                   return (
-                    <button key={alert.id} onClick={() => openAlert(alert)} className="w-full text-right rounded-lg p-3 transition relative overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                    <button key={alert.id} onClick={() => openDrawer(alert)} className="w-full text-right rounded-lg p-3 transition relative overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
                       <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[3px]`} style={{ backgroundColor: color, borderRadius: isAr ? "0 8px 8px 0" : "8px 0 0 8px" }} />
                       <div className={isAr ? "pr-3" : "pl-3"}>
                         <div className="flex items-center justify-between gap-2"><span className="text-xs font-bold" style={{ color }}>{cleanLabel(alert.type_label)}</span><span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{getTimeAgo(alert.created_at, isAr)}</span></div>
@@ -817,6 +907,72 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Measure distance display */}
+        {measureMode && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 glass-panel px-4 py-2 text-center pointer-events-none">
+            {measureDistance ? (
+              <span className="text-sm font-bold" style={{ color: "#F59E0B" }}>{measureDistance}</span>
+            ) : (
+              <span className="text-xs" style={{ color: "var(--text-muted)" }}>{isAr ? "اضغط على نقطتين لقياس المسافة" : "Tap two points to measure"}</span>
+            )}
+          </div>
+        )}
+
+        {/* Alert detail drawer */}
+        {drawerAlert && (
+          <div className={`absolute bottom-0 ${isAr ? "right-0" : "left-0"} z-30 w-full md:w-96 bottom-sheet`}
+            style={{ background: "var(--bg-surface)", backdropFilter: "blur(16px)", borderTop: "1px solid var(--border)", borderRadius: "16px 16px 0 0", boxShadow: "var(--shadow-lg)", maxHeight: "60vh", overflowY: "auto" }}>
+            <div style={{ padding: "16px 20px" }}>
+              {/* Handle bar */}
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
+              {/* Close */}
+              <button onClick={() => setDrawerAlert(null)} className="absolute top-3" style={{ [isAr ? "left" : "right"]: "12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "8px", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-muted)" }}>
+                <XIcon size={13} />
+              </button>
+              {/* Type badge */}
+              <div className="mb-3">
+                <span className="px-3 py-1 rounded-lg text-xs font-bold" style={{ background: `${TYPE_COLORS[drawerAlert.type] || "#5BA4E6"}18`, color: TYPE_COLORS[drawerAlert.type] || "#5BA4E6", border: `1px solid ${TYPE_COLORS[drawerAlert.type] || "#5BA4E6"}30` }}>
+                  {isAr ? cleanLabel(drawerAlert.type_label) : (TYPE_LABELS_EN[drawerAlert.type] || cleanLabel(drawerAlert.type_label))}
+                </span>
+                {drawerAlert.is_urgent && <span className="mx-2 px-2 py-1 rounded text-[10px] font-bold text-white" style={{ background: "var(--accent)" }}>{t("urgent")}</span>}
+              </div>
+              {/* Area */}
+              <h2 className="text-xl font-extrabold mb-2">{drawerAlert.area}</h2>
+              {/* Description */}
+              <p className="text-sm leading-7 mb-4" style={{ color: "var(--text-secondary)" }}>{drawerAlert.description || t("noDetails")}</p>
+              {/* Image */}
+              {drawerAlert.image_url && <img src={drawerAlert.image_url} className="w-full rounded-xl mb-4" style={{ maxHeight: "200px", objectFit: "cover" }} />}
+              {/* Meta grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{t("remainingTime")}</div>
+                  <div className="text-sm font-bold" style={{ color: "#F59E0B" }}>{getRemainingTime(drawerAlert.expires_at, isAr)}</div>
+                </div>
+                <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <div className="text-[10px] font-bold mb-1" style={{ color: "var(--text-muted)" }}>{isAr ? "وقت الإنشاء" : "Created"}</div>
+                  <div className="text-sm font-bold">{getTimeAgo(drawerAlert.created_at, isAr)}</div>
+                </div>
+              </div>
+              {/* Share buttons */}
+              <div className="grid grid-cols-3 gap-2">
+                <a href={`https://wa.me/?text=${encodeURIComponent(`🚨 ${drawerAlert.area}
+${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                  WhatsApp
+                </a>
+                <a href={`https://t.me/share/url?url=${encodeURIComponent(`${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                  Telegram
+                </a>
+                <button onClick={() => { navigator.clipboard.writeText(`${SITE_URL}/?alert=${drawerAlert.id}`); }}
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                  {isAr ? "نسخ" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bottom bar */}
         <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center h-8 text-[10px]"
