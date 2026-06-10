@@ -33,7 +33,7 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 type Template = { name: string; type: string; description: string; duration: string; radius: string; isUrgent: boolean };
-type LogEntry = { action: string; area: string; time: string };
+type LogEntry = { action: string; area: string; time: string; admin: string };
 
 const DURATION_OPTIONS = [
   { value: "30", label: "30 دقيقة" },
@@ -281,9 +281,20 @@ export default function AdminPage() {
 
   /* ── Helper functions for bulk edit, templates, duplication, activity log ── */
   function addLog(action: string, area: string) {
-    const entry = { action, area, time: new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }) };
+    const entry: LogEntry = { action, area, time: new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }), admin: email || "admin" };
     setActivityLog(prev => [entry, ...prev].slice(0, 50));
+    // Persist to Supabase admin_logs table
+    supabase.from("admin_logs").insert({ admin_email: email || "admin", action, area }).then(() => {});
   }
+
+  // Load activity logs from Supabase on mount
+  useEffect(() => {
+    if (!isAllowed) return;
+    supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50)
+      .then(({ data }) => {
+        if (data) setActivityLog(data.map((d: any) => ({ action: d.action, area: d.area || "", time: new Date(d.created_at).toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }), admin: d.admin_email || "admin" })));
+      });
+  }, [isAllowed]);
 
   function saveTemplate() {
     const name = prompt("اسم القالب:");
@@ -826,12 +837,15 @@ export default function AdminPage() {
                 <div style={{ padding: "32px", textAlign: "center", color: "#5A6B80", fontSize: "12px" }}>لا يوجد نشاط بعد</div>
               ) : activityLog.map((log, i) => (
                 <div key={i} style={{ padding: "10px 22px", borderBottom: "1px solid #1E3350", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
                     <Activity size={11} color="#5A6B80" />
                     <span style={{ fontSize: "12px", fontWeight: 700, color: "#F1F5F9" }}>{log.action}</span>
                     <span style={{ fontSize: "11px", color: "#5A6B80" }}>— {log.area}</span>
                   </div>
-                  <span style={{ fontSize: "10px", color: "#5A6B80" }}>{log.time}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                    <span style={{ fontSize: "9px", color: "#5BA4E6", background: "rgba(91,164,230,0.08)", borderRadius: "4px", padding: "2px 6px", fontWeight: 700 }}>{log.admin}</span>
+                    <span style={{ fontSize: "10px", color: "#5A6B80" }}>{log.time}</span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -648,9 +648,40 @@ export default function Home() {
 
         map.on("click", "strike-clusters", (e) => {
           const f = e.features?.[0]; if (!f) return;
-          (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id).then((zoom) => {
-            const coords = (f.geometry as any).coordinates;
-            map.easeTo({ center: coords, zoom: zoom + 0.5, duration: 500, easing: (t) => t * (2 - t) });
+          const clusterId = f.properties.cluster_id;
+          const clusterCoords = (f.geometry as any).coordinates as [number, number];
+          const src = map.getSource("strikes-cluster") as maplibregl.GeoJSONSource;
+
+          // Get the leaves (individual points inside this cluster)
+          src.getClusterLeaves(clusterId, 100, 0).then((leaves) => {
+            // Create temporary animated markers at cluster center
+            const tempMarkers: maplibregl.Marker[] = [];
+            leaves.forEach((leaf, i) => {
+              const realCoords = (leaf.geometry as any).coordinates as [number, number];
+              const el = document.createElement("div");
+              el.style.cssText = `width:14px;height:14px;background:#EF4444;border:2px solid rgba(255,255,255,0.85);border-radius:50%;transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s;opacity:0.9;z-index:${10 + i};pointer-events:none;`;
+              const marker = new maplibregl.Marker({ element: el }).setLngLat(clusterCoords).addTo(map);
+              tempMarkers.push(marker);
+
+              // Animate outward after a brief stagger
+              setTimeout(() => {
+                marker.setLngLat(realCoords);
+              }, 30 + i * 40);
+            });
+
+            // Zoom to fit after animation
+            setTimeout(() => {
+              src.getClusterExpansionZoom(clusterId).then((zoom) => {
+                map.easeTo({ center: clusterCoords, zoom: zoom + 0.5, duration: 400, easing: (t) => t * (2 - t) });
+              });
+              // Clean up temp markers after zoom completes
+              setTimeout(() => { tempMarkers.forEach(m => m.remove()); }, 500);
+            }, 200 + leaves.length * 40);
+          }).catch(() => {
+            // Fallback: just zoom
+            src.getClusterExpansionZoom(clusterId).then((zoom) => {
+              map.easeTo({ center: clusterCoords, zoom: zoom + 0.5, duration: 500, easing: (t) => t * (2 - t) });
+            });
           });
         });
         map.on("click", "strike-unclustered", (e) => {
@@ -946,6 +977,13 @@ export default function Home() {
               <p className="text-sm leading-7 mb-4" style={{ color: "var(--text-secondary)" }}>{drawerAlert.description || t("noDetails")}</p>
               {/* Image */}
               {drawerAlert.image_url && <img src={drawerAlert.image_url} className="w-full rounded-xl mb-4" style={{ maxHeight: "200px", objectFit: "cover" }} />}
+              {/* Mini map */}
+              <div className="rounded-xl overflow-hidden mb-4" style={{ border: "1px solid var(--border)" }}>
+                <img
+                  src={`https://api.maptiler.com/maps/${theme === "light" ? "streets-v2" : "streets-v2-dark"}/static/${drawerAlert.lng},${drawerAlert.lat},13/360x140@2x.png?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}&markers=color:${encodeURIComponent(TYPE_COLORS[drawerAlert.type] || "#E53935")}|${drawerAlert.lng},${drawerAlert.lat}`}
+                  alt="" className="w-full" style={{ display: "block", height: "140px", objectFit: "cover" }} loading="lazy"
+                />
+              </div>
               {/* Meta grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="rounded-xl p-3" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
@@ -973,6 +1011,26 @@ ${SITE_URL}/?alert=${drawerAlert.id}`)}`} target="_blank" rel="noopener"
                   {isAr ? "نسخ" : "Copy"}
                 </button>
               </div>
+              {/* Related alerts in same area */}
+              {(() => {
+                const related = alerts.filter(a => a.id !== drawerAlert.id && a.area === drawerAlert.area).slice(0, 3);
+                if (related.length === 0) return null;
+                return (
+                  <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+                    <p className="text-[10px] font-bold mb-2 tracking-wider" style={{ color: "var(--text-muted)" }}>{isAr ? "أحداث أخرى في المنطقة" : "Other alerts in this area"}</p>
+                    <div className="space-y-2">
+                      {related.map(r => (
+                        <button key={r.id} onClick={() => { setDrawerAlert(r); mapInstance.current?.flyTo({ center: [r.lng, r.lat], zoom: 13.5 }); }}
+                          className="w-full flex items-center gap-3 p-2.5 rounded-lg text-xs" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TYPE_COLORS[r.type] || "#5BA4E6" }} />
+                          <span className="font-bold flex-1 truncate" style={{ textAlign: isAr ? "right" : "left" }}>{isAr ? cleanLabel(r.type_label) : (TYPE_LABELS_EN[r.type] || cleanLabel(r.type_label))}</span>
+                          <span style={{ color: "var(--text-muted)" }}>{r.created_at ? new Date(r.created_at).toLocaleTimeString(isAr ? "ar-LB" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : ""}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
