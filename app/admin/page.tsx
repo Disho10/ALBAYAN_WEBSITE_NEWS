@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Activity, AlertTriangle, ArrowLeft, Check, Clock, Edit3, Eye,
-  EyeOff, LogOut, MapPin, RefreshCw, Send, Shield, Trash2, X, Zap, Radio,
+  EyeOff, LogOut, MapPin, RefreshCw, Search, Send, Shield, Trash2, X, Zap, Radio,
 } from "lucide-react";
 import { supabase } from "@/app/lib/supabase";
 import type { AlertItem, Area } from "@/app/lib/types";
@@ -137,6 +137,9 @@ export default function AdminPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editDuration, setEditDuration] = useState("keep");
   const [editIsUrgent, setEditIsUrgent] = useState(false);
+  const [listSearch, setListSearch] = useState("");
+  const [listTypeFilter, setListTypeFilter] = useState("all");
+  const [listStatusFilter, setListStatusFilter] = useState("all");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAllowed, setIsAllowed] = useState(false);
@@ -253,6 +256,18 @@ export default function AdminPage() {
   const activeCount = alerts.filter((a) => a.status !== "hidden").length;
   const urgentCount = alerts.filter((a) => a.is_urgent).length;
   const hiddenCount = alerts.filter((a) => a.status === "hidden").length;
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((a) => {
+      if (listStatusFilter === "active" && a.status === "hidden") return false;
+      if (listStatusFilter === "hidden" && a.status !== "hidden") return false;
+      if (listTypeFilter !== "all" && a.type !== listTypeFilter) return false;
+      if (listSearch.trim()) {
+        const q = listSearch.trim().toLowerCase();
+        return a.area.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q) || a.type_label?.includes(listSearch.trim());
+      }
+      return true;
+    });
+  }, [alerts, listSearch, listTypeFilter, listStatusFilter]);
   const isFormReady = useCoords ? (!!coordName.trim() && !!coordLat && !!coordLng) : selectedAreas.length > 0;
 
   /* ── Loading ─────────────────────────────────────────────── */
@@ -577,16 +592,46 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Search & Filter bar */}
+            <div style={{ padding: "10px 16px", borderBottom: "1px solid #1E3350", display: "flex", gap: "8px", flexWrap: "wrap" as const, alignItems: "center" }}>
+              <div style={{ flex: 1, minWidth: "140px", position: "relative" as const }}>
+                <Search size={13} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#5A6B80" }} />
+                <input
+                  value={listSearch} onChange={(e) => setListSearch(e.target.value)}
+                  placeholder="بحث عن منطقة أو وصف..."
+                  style={{ width: "100%", background: "rgba(10,22,40,0.6)", border: "1px solid #1E3350", borderRadius: "8px", padding: "7px 32px 7px 10px", color: "#F1F5F9", fontSize: "12px", fontWeight: 600, fontFamily: "inherit", outline: "none" }}
+                />
+              </div>
+              <select value={listTypeFilter} onChange={(e) => setListTypeFilter(e.target.value)}
+                style={{ background: "rgba(10,22,40,0.6)", border: "1px solid #1E3350", borderRadius: "8px", padding: "7px 10px", color: "#F1F5F9", fontSize: "11px", fontWeight: 700, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <option value="all">كل الأنواع</option>
+                {ALERT_TYPES.map((t) => <option key={t.type} value={t.type}>{cleanEmoji(t.label)}</option>)}
+              </select>
+              <select value={listStatusFilter} onChange={(e) => setListStatusFilter(e.target.value)}
+                style={{ background: "rgba(10,22,40,0.6)", border: "1px solid #1E3350", borderRadius: "8px", padding: "7px 10px", color: "#F1F5F9", fontSize: "11px", fontWeight: 700, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <option value="all">الكل ({alerts.length})</option>
+                <option value="active">نشطة ({activeCount})</option>
+                <option value="hidden">مخفية ({hiddenCount})</option>
+              </select>
+              {(listSearch || listTypeFilter !== "all" || listStatusFilter !== "all") && (
+                <button onClick={() => { setListSearch(""); setListTypeFilter("all"); setListStatusFilter("all"); }}
+                  style={{ background: "transparent", border: "1px solid #1E3350", borderRadius: "8px", padding: "6px 10px", color: "#5A6B80", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  مسح
+                </button>
+              )}
+              <span style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 600 }}>{filteredAlerts.length} نتيجة</span>
+            </div>
+
             {/* List body */}
-            {alerts.length === 0 ? (
+            {filteredAlerts.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: "32px", marginBottom: "14px", opacity: 0.3 }}>🗺️</div>
-                <h3 style={{ fontSize: "15px", fontWeight: 800, color: "#F1F5F9", marginBottom: "6px" }}>لا توجد أحداث</h3>
-                <p style={{ fontSize: "13px", color: "#5A6B80", margin: 0 }}>أضف أول حدث ليظهر مباشرة على الخريطة</p>
+                <div style={{ fontSize: "32px", marginBottom: "14px", opacity: 0.3 }}>🔍</div>
+                <h3 style={{ fontSize: "15px", fontWeight: 800, color: "#F1F5F9", marginBottom: "6px" }}>{listSearch || listTypeFilter !== "all" || listStatusFilter !== "all" ? "لا توجد نتائج" : "لا توجد أحداث"}</h3>
+                <p style={{ fontSize: "13px", color: "#5A6B80", margin: 0 }}>{listSearch ? "جرّب كلمة بحث مختلفة" : "أضف أول حدث ليظهر مباشرة على الخريطة"}</p>
               </div>
             ) : (
               <div style={{ maxHeight: "640px", overflowY: "auto" }}>
-                {alerts.map((alert) => {
+                {filteredAlerts.map((alert) => {
                   const isHidden = alert.status === "hidden";
                   const c = TYPE_COLOR[alert.type] || "#5BA4E6";
                   return (
