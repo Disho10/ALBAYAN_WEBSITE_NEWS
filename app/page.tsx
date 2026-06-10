@@ -105,6 +105,7 @@ const TYPE_COLORS: Record<string, string> = {
   strike: "#EF4444", artillery: "#DC2626", drone: "#5BA4E6", threat: "#F59E0B",
   enemy_position: "#A855F7", army_position: "#22C55E", traffic: "#38BDF8",
   crowd: "#DC2626", fire: "#F97316", injuries: "#E11D48",
+  quadcopter: "#06B6D4", helicopter: "#64748B", warplanes: "#6366F1",
   siren: "#E53935", siren_missile: "#E53935", siren_drone: "#E53935", red_alert: "#EF4444",
 };
 
@@ -123,6 +124,7 @@ const TYPE_LABELS_EN: Record<string, string> = {
   strike: "Strike", artillery: "Artillery", drone: "Drone Activity",
   threat: "Threat", enemy_position: "Enemy Position", army_position: "Army Deployment",
   traffic: "Accident", crowd: "Clashes", fire: "Fire", injuries: "Injuries",
+  quadcopter: "Quadcopter", helicopter: "Helicopter", warplanes: "Warplanes",
   siren: "Siren", siren_missile: "Missile Siren", siren_drone: "Drone Siren", red_alert: "Red Alert",
 };
 
@@ -193,6 +195,9 @@ const FILTERS = [
   { value: "enemy_position", lk: "enemyPos" as const, color: "#A855F7" },
   { value: "army_position", lk: "army" as const, color: "#22C55E" },
   { value: "siren", lk: "sirens" as const, color: "#E53935" },
+  { value: "quadcopter", lk: "quadcopters" as const, color: "#06B6D4" },
+  { value: "helicopter", lk: "helicopters" as const, color: "#64748B" },
+  { value: "warplanes", lk: "warplanes" as const, color: "#6366F1" },
   { value: "traffic", lk: "accidents" as const, color: "#38BDF8" },
   { value: "crowd", lk: "clashes" as const, color: "#DC2626" },
 ];
@@ -461,6 +466,42 @@ export default function Home() {
         return;
       }
 
+      /* ── Quadcopter marker ── */
+      if (alert.type === "quadcopter") {
+        const el = document.createElement("div"); el.className = "quadcopter-marker";
+        el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><rect x="10" y="4" width="4" height="16" rx="2"/><rect x="4" y="10" width="16" height="4" rx="2"/></svg>';
+        el.addEventListener("click", (e) => { e.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
+        strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map));
+        return;
+      }
+
+      /* ── Helicopter marker ── */
+      if (alert.type === "helicopter") {
+        const el = document.createElement("div"); el.className = "helicopter-marker";
+        el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M3 3h18v2H3zm6 4h6l3 4v2h-2l-1.5 5H9.5L8 13H6v-2l3-4zm3 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/><rect x="11" y="2" width="2" height="4"/></svg>';
+        el.addEventListener("click", (e) => { e.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
+        strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map));
+        return;
+      }
+
+      /* ── Warplanes — transparent circle with dotted outline ── */
+      if (alert.type === "warplanes") {
+        const srcId = `warplane-src-${alert.id}`, lineId = `warplane-line-${alert.id}`;
+        if (map.getSource(srcId)) return;
+        const circle = createCircleGeoJSON(alert.lng, alert.lat, alert.radius || 5000);
+        map.addSource(srcId, { type: "geojson", data: circle as any }); activeSourceIdsRef.current.push(srcId);
+        // NO fill layer — transparent center. Only a dashed outline.
+        map.addLayer({ id: lineId, type: "line", source: srcId, paint: { "line-color": "#6366F1", "line-width": 2, "line-dasharray": [3, 3] } });
+        activeLayerIdsRef.current.push(lineId);
+        const el = document.createElement("div"); el.className = "warplane-marker";
+        el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0011.5 2 1.5 1.5 0 0010 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>';
+        el.addEventListener("click", (e) => { e.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
+        strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map));
+        const ch = (ev: any) => showAlertPopup(alert, ev.lngLat);
+        map.on("click", lineId, ch); cleanupHandlersRef.current.push(() => map.off("click", lineId, ch));
+        return;
+      }
+
       if (isAreaHighlight && userSettings.highlightAreas) {
         const admin3Data = geoCache.current.admin3;
         const areaInAdmin3 = admin3Data?.features?.some((f: any) => f.properties?.adm3_name1 === alert.area);
@@ -720,6 +761,9 @@ export default function Home() {
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-[#A855F7] flex-shrink-0" /><span>{t("enemyPosition")}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-[#22C55E] flex-shrink-0" /><span>{t("lebArmy")}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#5BA4E6] flex-shrink-0" /><span>{t("droneActivity")}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#06B6D4] flex-shrink-0" /><span>{t("quadcopters")}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#64748B] flex-shrink-0" /><span>{t("helicopters")}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded border border-dashed border-[#6366F1] flex-shrink-0" /><span>{t("warplanes")}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded border border-dashed border-[#E53935] bg-[#E53935]/25 flex-shrink-0" /><span>{t("sirenAlert")}</span></div>
                   </div>
                 </div>

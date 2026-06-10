@@ -166,6 +166,59 @@ p, span, a, button, input, textarea, select, label, div { font-weight: 600; }
 }
 .drone-marker:hover { transform: scale(1.2); }
 
+/* ── Quadcopter marker ───────────────────────────────── */
+.quadcopter-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(6,182,212,0.85);
+  border: 2px solid rgba(255,255,255,0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.18);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.quadcopter-marker:hover { transform: scale(1.2); }
+
+/* ── Helicopter marker ───────────────────────────────── */
+.helicopter-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(100,116,139,0.85);
+  border: 2px solid rgba(255,255,255,0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(100,116,139,0.18);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.helicopter-marker:hover { transform: scale(1.2); }
+
+/* ── Warplane marker ─────────────────────────────────── */
+.warplane-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(99,102,241,0.85);
+  border: 2px solid rgba(255,255,255,0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  animation: warplanePulse 3s ease-in-out infinite;
+}
+.warplane-marker:hover { transform: scale(1.2); }
+@keyframes warplanePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(99,102,241,0.15); }
+  50% { box-shadow: 0 0 0 8px rgba(99,102,241,0.06); }
+}
+
 /* ── Utility animations ───────────────────────────────── */
 @keyframes marquee {
   0% { transform: translateX(-100%); }

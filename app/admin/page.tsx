@@ -29,6 +29,7 @@ const TYPE_COLOR: Record<string, string> = {
   strike: "#EF4444", artillery: "#DC2626", drone: "#5BA4E6",
   threat: "#F59E0B", enemy_position: "#A855F7", army_position: "#22C55E",
   traffic: "#38BDF8", crowd: "#DC2626", fire: "#F97316", injuries: "#E11D48",
+  quadcopter: "#06B6D4", helicopter: "#64748B", warplanes: "#6366F1",
 };
 
 const DURATION_OPTIONS = [

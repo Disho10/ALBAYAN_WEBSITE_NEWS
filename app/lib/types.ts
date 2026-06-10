@@ -38,6 +38,9 @@ export const ALERT_TYPES = [
   { type: "crowd", label: "⭕ اشتباكات", color: "#DC2626", radius: 700 },
   { type: "fire", label: "🔥 حريق", color: "#F97316", radius: 800 },
   { type: "injuries", label: "🚑 إصابات", color: "#E11D48", radius: 800 },
+  { type: "quadcopter", label: "🛸 كوادكوبتر", color: "#06B6D4", radius: 800 },
+  { type: "helicopter", label: "🚁 هليكوبتر", color: "#64748B", radius: 1000 },
+  { type: "warplanes", label: "✈️ طيران حربي", color: "#6366F1", radius: 5000 },
 ];
 
 export const TELEGRAM_CHANNEL_URL = "https://t.me/AlBayan_Newss";

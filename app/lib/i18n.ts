@@ -55,6 +55,9 @@ const t = {
   sirens: { ar: "صافرات", en: "Sirens" },
   accidents: { ar: "حوادث", en: "Accidents" },
   clashes: { ar: "اشتباكات", en: "Clashes" },
+  quadcopters: { ar: "كوادكوبتر", en: "Quadcopters" },
+  helicopters: { ar: "هليكوبتر", en: "Helicopters" },
+  warplanes: { ar: "طيران حربي", en: "Warplanes" },
 
   // Time filters
   lastHour: { ar: "ساعة", en: "1h" },
