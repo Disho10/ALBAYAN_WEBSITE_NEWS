@@ -1,95 +1,58 @@
-import Link from "next/link";
+"use client";
+
 import Footer from "@/app/components/Footer";
 import PageShell from "@/app/components/PageShell";
-import { Lock, MapPin, Ban } from "lucide-react";
+import { useApp } from "@/app/components/ThemeProvider";
 
-const privacySections = [
-  { title: "1. مقدمة", text: "نحترم في AlBayan Alert Map خصوصية المستخدمين ونلتزم بالتعامل مع البيانات بأعلى قدر ممكن من المسؤولية والشفافية. توضح هذه السياسة كيفية التعامل مع المعلومات أثناء استخدام الموقع أو إرسال البلاغات أو التواصل معنا." },
-  { title: "2. المعلومات التي قد نجمعها", text: "لا نطلب إنشاء حساب لاستخدام الخريطة. ومع ذلك، قد نتعامل مع بيانات عامة مثل نوع الجهاز، المتصفح، وقت الزيارة، الصفحات التي تم فتحها، أو أي معلومات يرسلها المستخدم طوعًا عبر البلاغات أو نماذج التواصل." },
-  { title: "3. البلاغات والمحتوى المرسل", text: "عند إرسال بلاغ، قد يتم استخدام المعلومات المرسلة مثل المنطقة، نوع الحدث، الوصف، الصور أو وسائل التواصل، وذلك فقط بهدف المراجعة والتحقق والمتابعة وتحسين دقة التنبيهات." },
-  { title: "4. استخدام المعلومات", text: "تُستخدم المعلومات لتحسين أداء الموقع، تطوير الخرائط، مراجعة البلاغات، منع إساءة الاستخدام، تحسين سرعة التنبيهات، والتواصل مع المرسل عند الحاجة إلى توضيحات إضافية." },
-  { title: "5. الموقع الجغرافي", text: "لا نقوم بتتبع أو حفظ موقعك الجغرافي تلقائيًا. لا يتم استخدام الموقع إلا إذا اخترت مشاركته بنفسك أثناء إرسال بلاغ أو معلومة ميدانية." },
-  { title: "6. عدم بيع البيانات", text: "لا نقوم ببيع أو تأجير أو مشاركة بيانات المستخدمين لأغراض تجارية أو إعلانية. أي معلومات يتم إرسالها إلينا تُستخدم فقط ضمن نطاق تشغيل المنصة وتحسين خدماتها." },
-  { title: "7. مشاركة المعلومات مع أطراف خارجية", text: "قد نستخدم خدمات تقنية خارجية مثل الاستضافة، الخرائط، أدوات التحليل، أو منصات التواصل. هذه الخدمات قد تعالج بعض البيانات التقنية اللازمة لتشغيل الموقع وفق سياساتها الخاصة." },
-  { title: "8. ملفات الكوكيز", text: "قد يستخدم الموقع ملفات تعريف الارتباط أو تقنيات مشابهة لتحسين تجربة الاستخدام، حفظ بعض التفضيلات، قياس الأداء، وفهم طريقة تفاعل الزوار مع المنصة." },
-  { title: "9. حماية المعلومات", text: "نحرص على اتخاذ إجراءات معقولة لحماية المعلومات من الوصول غير المصرح به أو التعديل أو الحذف أو سوء الاستخدام. ومع ذلك، لا يمكن ضمان الأمان الكامل لأي خدمة تعمل عبر الإنترنت." },
-  { title: "10. الاحتفاظ بالبيانات", text: "نحتفظ بالمعلومات فقط للمدة اللازمة لتشغيل المنصة، مراجعة البلاغات، تحسين الخدمات، منع إساءة الاستخدام، أو الالتزام بأي متطلبات قانونية عند الحاجة." },
-  { title: "11. حقوق المستخدم", text: "يمكن للمستخدم طلب حذف أو تصحيح أي معلومات أرسلها إلينا متى كان ذلك ممكنًا تقنيًا وعمليًا، وذلك عبر وسائل التواصل الرسمية الخاصة بالمنصة." },
-  { title: "12. الروابط الخارجية", text: "قد يحتوي الموقع على روابط إلى منصات خارجية مثل Telegram أو WhatsApp أو خدمات خرائط. نحن غير مسؤولين عن سياسات الخصوصية أو محتوى تلك المنصات." },
-  { title: "13. تحديثات السياسة", text: "قد نقوم بتحديث سياسة الخصوصية من وقت لآخر بما يتناسب مع تطوير الموقع أو تغيير الخدمات. استمرار استخدام الموقع بعد نشر التحديثات يعني قبول النسخة المحدّثة." },
-  { title: "14. التواصل معنا", text: "لأي استفسار حول سياسة الخصوصية أو طريقة التعامل مع البيانات، يمكنكم التواصل معنا عبر القنوات الرسمية الخاصة بـ AlBayan Alert Map." },
-];
+const sections = {
+  ar: [
+    { t: "مقدمة", b: "نحترم في AlBayan Alert Map خصوصية المستخدمين ونلتزم بالتعامل مع البيانات بأعلى قدر من المسؤولية والشفافية." },
+    { t: "المعلومات التي قد نجمعها", b: "لا نطلب إنشاء حساب لاستخدام الخريطة. قد نتعامل مع بيانات عامة مثل نوع الجهاز، المتصفح، وقت الزيارة، أو أي معلومات يرسلها المستخدم طوعًا عبر البلاغات." },
+    { t: "البلاغات والمحتوى المرسل", b: "عند إرسال بلاغ، قد يتم استخدام المعلومات المرسلة مثل المنطقة والوصف والصور فقط بهدف المراجعة والتحقق وتحسين دقة التنبيهات." },
+    { t: "استخدام المعلومات", b: "تُستخدم المعلومات لتحسين أداء الموقع، تطوير الخرائط، مراجعة البلاغات، ومنع إساءة الاستخدام." },
+    { t: "الموقع الجغرافي", b: "لا نقوم بتتبع أو حفظ موقعك الجغرافي تلقائيًا. لا يتم استخدام الموقع إلا إذا اخترت مشاركته بنفسك." },
+    { t: "عدم بيع البيانات", b: "لا نقوم ببيع أو تأجير أو مشاركة بيانات المستخدمين لأغراض تجارية أو إعلانية." },
+    { t: "الروابط الخارجية", b: "قد يحتوي الموقع على روابط إلى منصات خارجية. نحن غير مسؤولين عن سياسات الخصوصية أو محتوى تلك المنصات." },
+    { t: "حماية المعلومات", b: "نحرص على اتخاذ إجراءات معقولة لحماية المعلومات من الوصول غير المصرح به." },
+    { t: "حقوق المستخدم", b: "يمكن للمستخدم طلب حذف أو تصحيح أي معلومات أرسلها إلينا عبر وسائل التواصل الرسمية." },
+    { t: "تحديثات السياسة", b: "قد نقوم بتحديث سياسة الخصوصية من وقت لآخر. استمرار استخدام الموقع يعني قبول النسخة المحدّثة." },
+  ],
+  en: [
+    { t: "Introduction", b: "At AlBayan Alert Map, we respect user privacy and are committed to handling data with the highest level of responsibility and transparency." },
+    { t: "Information We May Collect", b: "We do not require account creation to use the map. We may process general data such as device type, browser, visit time, or any information voluntarily submitted by users through reports." },
+    { t: "Submitted Reports", b: "When submitting a report, the information provided (such as region, description, and photos) may be used solely for review, verification, and improving alert accuracy." },
+    { t: "Use of Information", b: "Information is used to improve site performance, develop maps, review reports, and prevent misuse." },
+    { t: "Location Data", b: "We do not automatically track or save your geographic location. Location is only used if you choose to share it yourself." },
+    { t: "No Data Sales", b: "We do not sell, rent, or share user data for commercial or advertising purposes." },
+    { t: "External Links", b: "The site may contain links to external platforms. We are not responsible for the privacy policies or content of those platforms." },
+    { t: "Information Protection", b: "We take reasonable measures to protect information from unauthorized access." },
+    { t: "User Rights", b: "Users can request deletion or correction of any information they have sent to us through official communication channels." },
+    { t: "Policy Updates", b: "We may update the privacy policy from time to time. Continued use of the site constitutes acceptance of the updated version." },
+  ],
+};
 
 export default function PrivacyPage() {
+  const { t, lang } = useApp();
+  const isAr = lang === "ar";
+  const items = isAr ? sections.ar : sections.en;
+
   return (
     <PageShell>
       <div className="mt-8 mb-10 text-center">
-        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>الخصوصية</p>
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">سياسة الخصوصية</h1>
+        <p className="font-bold mb-3 text-sm" style={{ color: "var(--accent)" }}>{t("privacy")}</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</h1>
         <p className="leading-8 max-w-3xl mx-auto" style={{ color: "var(--text-secondary)" }}>
-          نلتزم بحماية خصوصية مستخدمي AlBayan Alert Map والتعامل مع البيانات بشفافية ومسؤولية.
+          {isAr ? "نلتزم بحماية خصوصية مستخدمي AlBayan Alert Map والتعامل مع البيانات بشفافية." : "We are committed to protecting user privacy and handling data transparently."}
         </p>
-        <div className="mt-6 inline-block rounded-xl px-5 py-3" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-          آخر تحديث: يونيو 2026
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {[
-          { Icon: Lock, bg: "var(--green-soft)", color: "var(--green)", title: "حماية الخصوصية", desc: "لا نطلب إنشاء حساب لمتابعة الخريطة والتنبيهات." },
-          { Icon: MapPin, bg: "var(--blue-soft)", color: "var(--blue)", title: "لا تتبع للموقع", desc: "لا يتم حفظ موقعك الجغرافي إلا بإذن صريح منك." },
-          { Icon: Ban, bg: "var(--accent-soft)", color: "var(--accent)", title: "لا بيع للبيانات", desc: "لا نبيع أو نشارك بياناتكم لأغراض تجارية أو إعلانية." },
-        ].map(({ Icon, bg, color, title, desc }) => (
-          <div key={title} className="rounded-2xl p-5 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-            <div className="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: bg, color }}>
-              <Icon size={22} />
-            </div>
-            <h3 className="font-bold mb-2">{title}</h3>
-            <p className="text-sm leading-6" style={{ color: "var(--text-secondary)" }}>{desc}</p>
+      <div className="max-w-3xl mx-auto space-y-4 mb-12">
+        {items.map((s, i) => (
+          <div key={i} className="rounded-xl p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <h3 className="text-lg font-bold mb-3">{i + 1}. {s.t}</h3>
+            <p className="leading-8" style={{ color: "var(--text-secondary)" }}>{s.b}</p>
           </div>
         ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <aside className="space-y-4 lg:sticky lg:top-6">
-          <div className="rounded-2xl p-6" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
-            <p className="font-bold mb-4 tracking-widest text-xs" style={{ color: "var(--accent)" }}>معلومات</p>
-            <div className="space-y-5">
-              {[
-                { label: "البيانات", title: "الحد الأدنى من البيانات", text: "نتعامل مع أقل قدر ممكن من المعلومات لتشغيل الخدمة." },
-                { label: "الأمان", title: "حماية معقولة", text: "نحرص على تطبيق إجراءات أمنية مناسبة للمعلومات." },
-                { label: "الشفافية", title: "سياسة واضحة", text: "نوضح بشكل كامل كيف نتعامل مع أي بيانات." },
-              ].map((item) => (
-                <div key={item.label} className="pb-4 last:pb-0 last:border-b-0" style={{ borderBottom: "1px solid var(--border)" }}>
-                  <p className="text-xs font-bold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>{item.label}</p>
-                  <h3 className="font-bold">{item.title}</h3>
-                  <p className="text-sm mt-2 leading-7" style={{ color: "var(--text-secondary)" }}>{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-6 bg-gradient-to-br from-red-600 to-red-700 text-white">
-            <h3 className="text-lg font-bold mb-3">ساهم في استمرارية المشروع</h3>
-            <p className="text-white/90 leading-7 mb-5">دعمكم يساعدنا في تغطية تكاليف الخوادم وتطوير خدمات التنبيهات.</p>
-            <Link href="/donate" className="block text-center bg-white text-red-600 hover:bg-slate-100 transition rounded-xl px-5 py-3 font-bold">دعم المشروع</Link>
-          </div>
-        </aside>
-
-        <div className="lg:col-span-2 rounded-2xl p-6 md:p-8" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
-          <div className="text-center mb-8">
-            <p className="font-bold mb-3 tracking-widest text-xs" style={{ color: "var(--accent)" }}>البنود التفصيلية</p>
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">تفاصيل سياسة الخصوصية</h2>
-          </div>
-          <div className="space-y-4">
-            {privacySections.map((section) => (
-              <div key={section.title} className="rounded-xl p-5 transition" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-                <h3 className="text-lg font-bold mb-3">{section.title}</h3>
-                <p className="leading-8" style={{ color: "var(--text-secondary)" }}>{section.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       <Footer />
     </PageShell>

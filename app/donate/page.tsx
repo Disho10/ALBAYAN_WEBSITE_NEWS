@@ -163,7 +163,7 @@ export default function DonatePage() {
               </div>
               <div className="mt-6 rounded-2xl py-4 px-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
                 <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>{c.transferLabel}</p>
-                <div className="text-2xl font-extrabold tracking-wide">674 096 76 961+</div>
+                <div className="text-2xl font-extrabold tracking-wide" dir="ltr">+961 76 096 674</div>
               </div>
               <div className="flex justify-center mt-5">
                 <button
