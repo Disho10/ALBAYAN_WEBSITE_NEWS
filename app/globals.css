@@ -264,3 +264,10 @@ p, span, a, button, input, textarea, select, label, div { font-weight: 600; }
   background: var(--bg-elevated);
   color: var(--text);
 }
+
+/* Slide-up animation for donation sheet */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

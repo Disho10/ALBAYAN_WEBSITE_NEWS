@@ -185,7 +185,7 @@ export default function DonatePage() {
               <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>{isAr ? "يمكنك إرسال تحويل عبر أي فرع OMT في لبنان" : "Send a transfer via any OMT branch in Lebanon"}</p>
               <div className="rounded-xl py-3 px-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
                 <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>{isAr ? "الاسم" : "Name"}</p>
-                <div className="text-lg font-extrabold" dir="ltr">Ali Disho</div>
+                <div className="text-lg font-extrabold" dir="ltr">Mohamad Abed Ali</div>
               </div>
             </div>
 

@@ -917,7 +917,7 @@ export default function Home() {
         {/* Legend is now inside the Layers panel */}
 
         {/* Events side panel */}
-        <div className={`absolute top-14 ${isAr ? "left-0" : "right-0"} z-20 flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
+        <div className={`absolute top-[56px] ${isAr ? "left-0" : "right-0"} z-20 flex flex-col transition-all duration-300 ${sidebarOpen ? "w-full md:w-[360px]" : "w-0"}`}
           style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: sidebarOpen ? "-4px 0 24px rgba(0,0,0,0.15)" : "none", overflow: "hidden" }}>
           {sidebarOpen && (<>
             {/* Panel header */}
@@ -964,7 +964,7 @@ export default function Home() {
         {/* Events toggle button (when panel is closed) */}
         {!sidebarOpen && (
           <button onClick={() => { setSidebarOpen(true); setDrawerAlert(null); }}
-            className={`absolute ${isAr ? "left-3" : "right-3"} bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
+            className={`absolute ${isAr ? "left-3" : "right-3"} bottom-24 md:bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
             <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
             <span>{t("events")}</span>
             <ChevronUp size={14} style={{ color: "var(--text-muted)" }} />
@@ -984,7 +984,7 @@ export default function Home() {
 
         {/* Alert detail side panel */}
         {drawerAlert && (
-          <div className={`absolute top-14 ${isAr ? "left-0" : "right-0"} z-30 w-full md:w-[400px] flex flex-col`}
+          <div className={`absolute top-[56px] ${isAr ? "left-0" : "right-0"} z-30 w-full md:w-[400px] flex flex-col`}
             style={{ bottom: 0, background: "var(--bg-surface)", borderLeft: isAr ? "none" : "1px solid var(--border)", borderRight: isAr ? "1px solid var(--border)" : "none", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
             {/* Detail header */}
             <div className="flex items-center justify-between px-5 py-3.5 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -1081,25 +1081,61 @@ export default function Home() {
           </div>
         )}
 
-        {/* Support popup — shows once after 5 minutes */}
+        {/* Support slide-up sheet — shows once after 5 minutes */}
         {showSupportPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
-            <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
-              <div className="p-6 text-center">
-                <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl" style={{ background: "rgba(229,57,53,0.08)" }}>❤️</div>
-                <h3 className="text-lg font-extrabold mb-2">{isAr ? "ادعم البيان الإخباري" : "Support AlBayan"}</h3>
-                <p className="text-sm leading-7 mb-5" style={{ color: "var(--text-secondary)" }}>
-                  {isAr ? "نقدم هذه الخدمة مجاناً وبدون إعلانات. مساهمتك تساعدنا على الاستمرار في تقديم تنبيهات دقيقة وسريعة." : "We provide this service for free with no ads. Your contribution helps us continue delivering accurate, fast alerts."}
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} } }}>
+            <div className="w-full max-w-md rounded-t-2xl overflow-hidden max-h-[85vh] overflow-y-auto animate-slide-up"
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderBottom: "none", boxShadow: "0 -20px 60px rgba(0,0,0,0.4)" }}>
+              {/* Handle bar */}
+              <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-2" style={{ background: "var(--border)" }} />
+              {/* Header */}
+              <div className="px-6 pt-2 pb-4 text-center">
+                <div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl" style={{ background: "rgba(229,57,53,0.08)" }}>❤️</div>
+                <h3 className="text-lg font-extrabold mb-1">{isAr ? "ادعم البيان الإخباري" : "Support AlBayan"}</h3>
+                <p className="text-xs leading-6" style={{ color: "var(--text-secondary)" }}>
+                  {isAr ? "نقدم هذه الخدمة مجاناً وبدون إعلانات. مساهمتك تساعدنا على الاستمرار." : "Free, ad-free service. Your contribution keeps us running."}
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <a href="/donate" className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--accent)", color: "white" }}>
-                    {isAr ? "تبرع الآن" : "Donate"}
-                  </a>
-                  <button onClick={() => { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} }}
-                    className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                    {isAr ? "لاحقاً" : "Later"}
+              </div>
+              {/* Wish Money QR */}
+              <div className="px-6 pb-4">
+                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <p className="text-[10px] font-bold tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>WISH MONEY</p>
+                  <img src="/qr-wish.png" alt="QR" className="w-40 h-40 mx-auto rounded-lg mb-3" style={{ background: "white", padding: "8px" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <div className="text-lg font-extrabold tracking-wide" dir="ltr">+961 76 096 674</div>
+                  <button onClick={() => { navigator.clipboard.writeText("+96176096674"); }}
+                    className="mt-2 text-[11px] font-bold px-4 py-1.5 rounded-lg" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border)", cursor: "pointer" }}>
+                    {isAr ? "نسخ الرقم" : "Copy Number"}
                   </button>
                 </div>
+              </div>
+              {/* OMT */}
+              <div className="px-6 pb-4">
+                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <img src="/omt-logo.png" alt="OMT" className="h-5" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <p className="text-[10px] font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>OMT</p>
+                  </div>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>{isAr ? "تحويل عبر أي فرع OMT باسم" : "Transfer via any OMT branch to"}</p>
+                  <div className="text-lg font-extrabold">Mohamad Abed Ali</div>
+                </div>
+              </div>
+              {/* USDT */}
+              <div className="px-6 pb-4">
+                <div className="rounded-xl p-4 text-center" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <p className="text-[10px] font-bold tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>USDT (TRC20)</p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{isAr ? "قريباً" : "Coming soon"}</p>
+                </div>
+              </div>
+              {/* Buttons */}
+              <div className="px-6 pb-6 grid grid-cols-2 gap-3">
+                <a href="/donate" className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--accent)", color: "white" }}>
+                  {isAr ? "صفحة التبرع" : "Donate Page"}
+                </a>
+                <button onClick={() => { setShowSupportPopup(false); try { localStorage.setItem("albayan-support-dismissed", "true"); } catch {} }}
+                  className="flex items-center justify-center py-3 rounded-xl text-sm font-bold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                  {isAr ? "لاحقاً" : "Later"}
+                </button>
               </div>
             </div>
           </div>
