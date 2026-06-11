@@ -331,11 +331,25 @@ export default function Home() {
     // Small delay so panels render before we measure
     const timer = setTimeout(() => {
       const el = document.querySelector(step.target!);
-      if (el) {
-        setTourRect(el.getBoundingClientRect());
-      } else {
-        setTourRect(null);
+      if (!el) { setTourRect(null); return; }
+
+      const btnRect = el.getBoundingClientRect();
+
+      // For filter/layers, combine button rect with the dropdown panel rect
+      if (step.id === "filter" || step.id === "layers") {
+        const dropdown = document.querySelector(`[data-tour-dropdown="${step.id}"]`);
+        if (dropdown) {
+          const ddRect = dropdown.getBoundingClientRect();
+          const top = Math.min(btnRect.top, ddRect.top);
+          const left = Math.min(btnRect.left, ddRect.left);
+          const bottom = Math.max(btnRect.bottom, ddRect.bottom);
+          const right = Math.max(btnRect.right, ddRect.right);
+          setTourRect(new DOMRect(left, top, right - left, bottom - top));
+          return;
+        }
       }
+
+      setTourRect(btnRect);
     }, step.id === "filter" || step.id === "layers" ? 150 : 0);
 
     return () => clearTimeout(timer);
@@ -983,14 +997,14 @@ export default function Home() {
         {/* Filter + Time + Layers panels */}
         <div className={`absolute z-20 ${isAr ? "right-3" : "left-3"} ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-14" : "top-3"} flex gap-2`}>
           {/* Filter */}
-          <div data-tour="filter" className="relative">
+          <div data-tour="filter" className="relative" style={tourStep === 2 ? { zIndex: 101 } : undefined}>
             <button onClick={() => { setFilterPanelOpen(!filterPanelOpen); setLayerPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Filter size={14} /><span>{t("filter")}</span>
               {activeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px] text-white" style={{ background: "var(--accent)" }}>{activeFilterLabel && t(activeFilterLabel)}</span>}
               {timeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>{timeFilter}</span>}
             </button>
             {filterPanelOpen && (
-              <div className="glass-panel mt-2 p-3 w-56 space-y-1 absolute top-full">
+              <div data-tour-dropdown="filter" className="glass-panel mt-2 p-3 w-56 space-y-1 absolute top-full">
                 <p className="text-[10px] font-bold mb-1 tracking-widest" style={{ color: "var(--text-muted)" }}>{t("filter")}</p>
                 {FILTERS.map((f) => (
                   <button key={f.value} onClick={() => { setActiveFilter(f.value); setFilterPanelOpen(false); }}
@@ -1017,12 +1031,12 @@ export default function Home() {
           </div>
 
           {/* Layers */}
-          <div data-tour="layers" className="relative">
+          <div data-tour="layers" className="relative" style={tourStep === 4 ? { zIndex: 101 } : undefined}>
             <button onClick={() => { setLayerPanelOpen(!layerPanelOpen); setFilterPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Layers size={14} /><span className="hidden sm:inline">{t("layers")}</span>
             </button>
             {layerPanelOpen && (
-              <div className="glass-panel mt-2 p-3 w-52 space-y-1 absolute top-full">
+              <div data-tour-dropdown="layers" className="glass-panel mt-2 p-3 w-52 space-y-1 absolute top-full">
                 {(["default", "satellite"] as const).map((s) => (
                   <button key={s} onClick={() => changeMapStyle(s)}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition"
