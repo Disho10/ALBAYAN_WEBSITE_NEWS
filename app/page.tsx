@@ -77,32 +77,50 @@ function matchesTimeFilter(a: AlertItem, tf: string) {
   return Date.now() - new Date(a.created_at).getTime() < hours * 3600000;
 }
 
+/* ─── Sound + Notifications (works in background) ─── */
+const SOUND_FILES: Record<string, string> = {
+  beep: "/sounds/alert-beep.wav",
+  alarm: "/sounds/alert-alarm.wav",
+  chime: "/sounds/alert-chime.wav",
+  siren: "/sounds/alert-siren.wav",
+};
+
 function playAlertSound(type = "beep") {
   try {
-    const ctx = new AudioContext();
-    if (type === "alarm") {
-      for (let i = 0; i < 3; i++) setTimeout(() => {
+    const src = SOUND_FILES[type] || SOUND_FILES.beep;
+    const audio = new Audio(src);
+    audio.volume = 0.35;
+    audio.play().catch(() => {
+      // Fallback: AudioContext (foreground only)
+      try {
+        const ctx = new AudioContext();
         const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination); o.frequency.value = 800 + i * 100; o.type = "sawtooth"; g.gain.value = 0.08;
-        o.start(ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.stop(ctx.currentTime + 0.3);
-      }, i * 200);
-    } else if (type === "chime") {
-      [523, 659, 784].forEach((f, i) => setTimeout(() => {
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = "sine"; g.gain.value = 0.1;
-        o.start(ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4); o.stop(ctx.currentTime + 0.4);
-      }, i * 150));
-    } else {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; o.type = "sine"; g.gain.value = 0.12;
-      o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); o.stop(ctx.currentTime + 0.5);
-      setTimeout(() => { const o2 = ctx.createOscillator(), g2 = ctx.createGain(); o2.connect(g2); g2.connect(ctx.destination); o2.frequency.value = 1100; o2.type = "sine"; g2.gain.value = 0.12; o2.start(); g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8); o2.stop(ctx.currentTime + 0.8); }, 180);
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880; o.type = "sine"; g.gain.value = 0.12;
+        o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        o.stop(ctx.currentTime + 0.3);
+      } catch {}
+    });
+  } catch {}
+}
+
+function sendNotification(title: string, body: string) {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    new Notification(title, { body, icon: "/logo-dark.png", badge: "/logo-dark.png", tag: "albayan-" + Date.now(), requireInteraction: false });
+  } catch {}
+}
+
+function requestNotificationPermission() {
+  try {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
     }
   } catch {}
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  strike: "#EF4444", artillery: "#DC2626", drone: "#5BA4E6", threat: "#F59E0B",
+  strike: "#EF4444", artillery: "#F97316", drone: "#5BA4E6", threat: "#F59E0B",
   enemy_position: "#A855F7", army_position: "#22C55E", traffic: "#38BDF8",
   crowd: "#DC2626", fire: "#F97316", injuries: "#E11D48",
   quadcopter: "#06B6D4", helicopter: "#64748B", warplanes: "#6366F1",
@@ -256,11 +274,31 @@ export default function Home() {
   const [drawerAlert, setDrawerAlert] = useState<AlertItem | null>(null);
   const [showSupportPopup, setShowSupportPopup] = useState(false);
 
+  /* Onboarding */
+  const [onboardingStep, setOnboardingStep] = useState(-1); // -1 = not shown
+  const ONBOARDING_STEPS = useMemo(() => [
+    { id: "welcome", title: isAr ? "مرحبًا بك في البيان الإخباري" : "Welcome to AlBayan News", desc: isAr ? "منصة تنبيهات لبنان الحية. دعنا نريك كيف تستخدم الخريطة بأقل من دقيقة." : "Lebanon's live alert map. Let us show you the key features in under a minute.", icon: "🗺️" },
+    { id: "filters", title: isAr ? "تصفية الأحداث" : "Filter Alerts", desc: isAr ? "استخدم شريط التصفية لعرض أنواع محددة: غارات، تهديدات، مسيّرات، صفارات إنذار، وغيرها. يمكنك أيضًا التصفية حسب الوقت." : "Use the filter bar to show specific types: strikes, threats, drones, sirens, and more. You can also filter by time.", icon: "🎯" },
+    { id: "events", title: isAr ? "قائمة الأحداث" : "Events Panel", desc: isAr ? "اضغط على زر «أحداث» لعرض جميع التنبيهات النشطة. اضغط على أي حدث للانتقال إليه على الخريطة ومشاهدة التفاصيل." : "Tap 'Events' to see all active alerts in a list. Tap any event to fly to it on the map and see full details.", icon: "📋" },
+    { id: "layers", title: isAr ? "طبقات الخريطة" : "Map Layers", desc: isAr ? "بدّل بين الخريطة العادية وصور الأقمار الاصطناعية، أو فعّل خريطة الحرارة لرؤية مناطق التركيز." : "Switch between standard and satellite view, or enable the heatmap to see concentration areas.", icon: "🗂️" },
+    { id: "types", title: isAr ? "أنواع التنبيهات" : "Alert Types", desc: isAr ? "كل لون على الخريطة يمثّل نوعًا مختلفًا:\n🔴 غارة (دائرة) · 🟠 قصف مدفعي (مربع)\n🟡 تهديد · 🟣 موقع عدو · 🟢 انتشار جيش\n🔵 مسيّرة · 🔴⚠ صفارة إنذار" : "Each color on the map represents a different type:\n🔴 Airstrike (circle) · 🟠 Artillery (square)\n🟡 Threat · 🟣 Enemy Position · 🟢 Army\n🔵 Drone · 🔴⚠ Siren Alert", icon: "🎨" },
+    { id: "tools", title: isAr ? "أدوات إضافية" : "Extra Tools", desc: isAr ? "📍 زر الموقع: يُظهر موقعك الحالي\n📏 المسطرة: قياس المسافة بين نقطتين\n🔍 البحث: ابحث عن أي بلدة لبنانية\n⌨️ اختصارات: F=تصفية S=بحث L=موقع" : "📍 Location: shows your current position\n📏 Ruler: measure distance between two points\n🔍 Search: find any Lebanese town\n⌨️ Shortcuts: F=Filter S=Search L=Locate", icon: "🛠️" },
+    { id: "notifications", title: isAr ? "الإشعارات" : "Stay Notified", desc: isAr ? "فعّل الإشعارات لتلقي تنبيهات فورية حتى لو كان المتصفح في الخلفية. يمكنك تخصيص صوت التنبيه من الإعدادات." : "Enable notifications to receive instant alerts even when the browser is in the background. Customize the sound in Settings.", icon: "🔔" },
+  ], [isAr]);
+
   // Support popup — show once after 5 minutes
   useEffect(() => {
     try { if (localStorage.getItem("albayan-support-dismissed")) return; } catch {}
     const timer = setTimeout(() => setShowSupportPopup(true), 5 * 60 * 1000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Onboarding — show on first visit
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("albayan-onboarded")) setOnboardingStep(0);
+    } catch {}
+    requestNotificationPermission();
   }, []);
 
   /* Search */
@@ -298,11 +336,23 @@ export default function Home() {
         .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`).order("created_at", { ascending: false });
       if (e) throw e;
       const newAlerts = data || [];
-      if (userSettings.soundEnabled) {
-        const prev = prevAlertIdsRef.current;
-        for (const a of newAlerts) { if (a.is_urgent && !prev.has(a.id)) { playAlertSound(userSettings.soundType); break; } }
-        prevAlertIdsRef.current = new Set(newAlerts.map((a) => a.id));
+      const prev = prevAlertIdsRef.current;
+      if (prev.size > 0) {
+        const freshAlerts = newAlerts.filter(a => !prev.has(a.id));
+        if (freshAlerts.length > 0 && userSettings.soundEnabled) {
+          const hasSiren = freshAlerts.some(a => a.type?.startsWith("siren") || a.type === "red_alert");
+          const hasUrgent = freshAlerts.some(a => a.is_urgent);
+          playAlertSound(hasSiren ? "siren" : hasUrgent ? "alarm" : userSettings.soundType);
+          // System notification (works in background)
+          const first = freshAlerts[0];
+          const label = cleanLabel(first.type_label);
+          sendNotification(
+            `${label} — ${first.area}`,
+            first.description || (freshAlerts.length > 1 ? `+${freshAlerts.length - 1} تنبيهات أخرى` : "تنبيه جديد على البيان الإخباري")
+          );
+        }
       }
+      prevAlertIdsRef.current = new Set(newAlerts.map((a) => a.id));
       setAlerts(newAlerts);
       setError(null);
     } catch {
@@ -636,23 +686,26 @@ export default function Home() {
       map.on("click", fId, ch); cleanupHandlersRef.current.push(() => map.off("click", fId, ch));
     });
 
-    /* Strike layers added last — always render on top of area fills */
-    const strikeAlerts = visibleAlerts.filter((a) => a.type === "strike" || a.type === "artillery");
-    if (strikeAlerts.length > 0) {
-      const fc = { type: "FeatureCollection", features: strikeAlerts.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
+    /* Strike + artillery layers — last, so they render on top of area fills */
+    const strikeOnly = visibleAlerts.filter((a) => a.type === "strike");
+    const artilleryOnly = visibleAlerts.filter((a) => a.type === "artillery");
+
+    /* ── Airstrikes: red clustered circles ── */
+    if (strikeOnly.length > 0) {
+      const fc = { type: "FeatureCollection", features: strikeOnly.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
       if (!map.getSource("strikes-cluster")) {
-        map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 50 });
+        map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 45 });
         activeSourceIdsRef.current.push("strikes-cluster");
       } else {
         (map.getSource("strikes-cluster") as maplibregl.GeoJSONSource).setData(fc as any);
       }
       if (!map.getLayer("strike-clusters")) {
         map.addLayer({ id: "strike-clusters", type: "circle", source: "strikes-cluster", filter: ["has", "point_count"],
-          paint: { "circle-color": "#EF4444", "circle-radius": ["step", ["get", "point_count"], 16, 5, 22, 10, 28], "circle-opacity": 0.85, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.8)" } });
+          paint: { "circle-color": "#EF4444", "circle-radius": ["step", ["get", "point_count"], 14, 5, 18, 15, 22, 30, 24], "circle-opacity": 0.85, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.8)" } });
         map.addLayer({ id: "strike-cluster-count", type: "symbol", source: "strikes-cluster", filter: ["has", "point_count"],
           layout: { "text-field": "{point_count_abbreviated}", "text-size": 11 }, paint: { "text-color": "#ffffff" } });
         map.addLayer({ id: "strike-unclustered", type: "circle", source: "strikes-cluster", filter: ["!", ["has", "point_count"]],
-          paint: { "circle-color": "#EF4444", "circle-radius": 7, "circle-opacity": 0.9, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.85)" } });
+          paint: { "circle-color": "#EF4444", "circle-radius": 6, "circle-opacity": 0.9, "circle-stroke-width": 2, "circle-stroke-color": "rgba(255,255,255,0.85)" } });
         activeLayerIdsRef.current.push("strike-clusters", "strike-cluster-count", "strike-unclustered");
 
         map.on("click", "strike-clusters", (e) => {
@@ -660,42 +713,31 @@ export default function Home() {
           const clusterId = f.properties.cluster_id;
           const clusterCoords = (f.geometry as any).coordinates as [number, number];
           const src = map.getSource("strikes-cluster") as maplibregl.GeoJSONSource;
-
-          // Get the leaves (individual points inside this cluster)
           src.getClusterLeaves(clusterId, 100, 0).then((leaves) => {
-            // Create temporary animated markers at cluster center
             const tempMarkers: maplibregl.Marker[] = [];
             leaves.forEach((leaf, i) => {
               const realCoords = (leaf.geometry as any).coordinates as [number, number];
               const el = document.createElement("div");
-              el.style.cssText = `width:14px;height:14px;background:#EF4444;border:2px solid rgba(255,255,255,0.85);border-radius:50%;transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s;opacity:0.9;z-index:${10 + i};pointer-events:none;`;
+              el.style.cssText = `width:12px;height:12px;background:#EF4444;border:2px solid rgba(255,255,255,0.85);border-radius:50%;transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1),opacity 0.4s;opacity:0.9;z-index:${10 + i};pointer-events:none;`;
               const marker = new maplibregl.Marker({ element: el }).setLngLat(clusterCoords).addTo(map);
               tempMarkers.push(marker);
-
-              // Animate outward after a brief stagger
-              setTimeout(() => {
-                marker.setLngLat(realCoords);
-              }, 30 + i * 40);
+              setTimeout(() => { marker.setLngLat(realCoords); }, 30 + i * 40);
             });
-
-            // Zoom to fit after animation
             setTimeout(() => {
               src.getClusterExpansionZoom(clusterId).then((zoom) => {
-                map.easeTo({ center: clusterCoords, zoom: zoom + 0.5, duration: 400, easing: (t) => t * (2 - t) });
+                map.easeTo({ center: clusterCoords, zoom: Math.min(zoom + 0.5, 15), duration: 400, easing: (t) => t * (2 - t) });
               });
-              // Clean up temp markers after zoom completes
               setTimeout(() => { tempMarkers.forEach(m => m.remove()); }, 500);
             }, 200 + leaves.length * 40);
           }).catch(() => {
-            // Fallback: just zoom
             src.getClusterExpansionZoom(clusterId).then((zoom) => {
-              map.easeTo({ center: clusterCoords, zoom: zoom + 0.5, duration: 500, easing: (t) => t * (2 - t) });
+              map.easeTo({ center: clusterCoords, zoom: Math.min(zoom + 0.5, 15), duration: 500, easing: (t) => t * (2 - t) });
             });
           });
         });
         map.on("click", "strike-unclustered", (e) => {
           const f = e.features?.[0]; if (!f) return;
-          const alert = strikeAlerts.find((a) => a.id === f.properties.id);
+          const alert = strikeOnly.find((a) => a.id === f.properties.id);
           if (alert) showAlertPopup(alert, (f.geometry as any).coordinates);
         });
         map.on("mouseenter", "strike-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
@@ -704,6 +746,15 @@ export default function Home() {
         map.on("mouseleave", "strike-unclustered", () => { map.getCanvas().style.cursor = ""; });
       }
     }
+
+    /* ── Artillery: orange diamond DOM markers ── */
+    artilleryOnly.forEach((alert) => {
+      const el = document.createElement("div");
+      el.className = "artillery-marker";
+      el.style.cssText = "width:14px;height:14px;background:#F97316;border:2px solid rgba(255,255,255,0.85);transform:rotate(45deg);cursor:pointer;box-shadow:0 0 6px rgba(249,115,22,0.5);";
+      el.addEventListener("click", (ev) => { ev.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
+      strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map));
+    });
   }, [visibleAlerts, mapReady, userSettings.highlightAreas, theme, lang]);
 
   /* ── Preferred area auto-center on first load ──────── */
@@ -814,7 +865,53 @@ export default function Home() {
 
       {/* ─── MAP AREA ────────────────────────────────── */}
       <div className="relative flex-1 w-full">
-        {loading && <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4" style={{ background: "var(--bg-deep)" }}><div className="w-10 h-10 rounded-full animate-spin" style={{ border: "3px solid var(--border)", borderTopColor: "var(--accent)" }} /><p className="text-sm" style={{ color: "var(--text-muted)" }}>{t("loading")}</p></div>}
+        {loading && (
+          <div className="absolute inset-0 z-40" style={{ background: "var(--bg-deep)" }}>
+            {/* Map skeleton — subtle animated shimmer */}
+            <div className="absolute inset-0" style={{ background: "var(--bg-deep)" }}>
+              {/* Fake map tiles */}
+              <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
+            </div>
+            {/* Fake filter bar skeleton */}
+            <div className={`absolute z-10 ${isAr ? "right-3" : "left-3"} top-3 flex gap-2`}>
+              <div className="skeleton-shimmer h-9 w-24 rounded-xl" />
+              <div className="skeleton-shimmer h-9 w-16 rounded-xl" />
+            </div>
+            {/* Fake zoom controls */}
+            <div className={`absolute z-10 ${isAr ? "left-3" : "right-3"} top-3 flex flex-col gap-2`}>
+              <div className="skeleton-shimmer h-9 w-9 rounded-xl" />
+              <div className="skeleton-shimmer h-9 w-9 rounded-xl" />
+              <div className="skeleton-shimmer h-9 w-9 rounded-xl" />
+            </div>
+            {/* Fake event cards */}
+            <div className={`absolute ${isAr ? "left-3" : "right-3"} bottom-12 flex flex-col gap-2 w-72 hidden md:flex`}>
+              {[1, 2, 3].map(i => (
+                <div key={i} className="skeleton-shimmer h-20 rounded-xl" style={{ opacity: 1 - i * 0.25 }} />
+              ))}
+            </div>
+            {/* Center loading indicator */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3">
+              <img src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"} alt="" width={48} height={48} className="animate-pulse" />
+              <p className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>{t("loading")}</p>
+            </div>
+            <style>{`
+              .skeleton-shimmer {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                position: relative;
+                overflow: hidden;
+              }
+              .skeleton-shimmer::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(90deg, transparent, var(--bg-surface), transparent);
+                animation: shimmer 1.5s infinite;
+              }
+              @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+            `}</style>
+          </div>
+        )}
 
         {error && <div className="absolute top-0 left-0 right-0 z-30 px-4 py-2 text-center text-xs font-bold text-white" style={{ background: "var(--accent)" }}>{error} <button onClick={loadAlerts} className={`${isAr ? "mr-2" : "ml-2"} underline`}>{t("retry")}</button></div>}
 
@@ -888,7 +985,8 @@ export default function Home() {
                 <div className="pt-2 mt-1" style={{ borderTop: "1px solid var(--border)" }}>
                   <p className="text-[10px] font-bold mb-2 tracking-widest px-1" style={{ color: "var(--text-muted)" }}>{t("mapLegend")}</p>
                   <div className="space-y-1 text-[11px] px-1">
-                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#EF4444] flex-shrink-0" /><span>{t("strikeArtillery")}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#EF4444] flex-shrink-0" /><span>{isAr ? "غارة جوية" : "Airstrike"}</span></div>
+                    <div className="flex items-center gap-2"><span className="w-2 h-2 bg-[#F97316] flex-shrink-0" style={{ transform: "rotate(45deg)" }} /><span>{isAr ? "قصف مدفعي" : "Artillery"}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-[#F59E0B] flex-shrink-0" /><span>{t("threat")}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-[#A855F7] flex-shrink-0" /><span>{t("enemyPosition")}</span></div>
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-[#22C55E] flex-shrink-0" /><span>{t("lebArmy")}</span></div>
@@ -1181,6 +1279,60 @@ export default function Home() {
           <Link href="/stats" className="hover:underline">{isAr ? "إحصائيات" : "Stats"}</Link>
         </div>
       </div>
+
+      {/* ─── ONBOARDING OVERLAY ──────────────────────── */}
+      {onboardingStep >= 0 && onboardingStep < ONBOARDING_STEPS.length && (
+        <div className="fixed inset-0 z-[100]" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md" dir={isAr ? "rtl" : "ltr"}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}>
+              {/* Progress bar */}
+              <div className="h-1 w-full" style={{ background: "var(--border)" }}>
+                <div className="h-full transition-all duration-300" style={{ width: `${((onboardingStep + 1) / ONBOARDING_STEPS.length) * 100}%`, background: "var(--accent)" }} />
+              </div>
+              {/* Content */}
+              <div className="p-6 text-center">
+                <div className="text-3xl mb-4">{ONBOARDING_STEPS[onboardingStep].icon}</div>
+                <h2 className="text-lg font-extrabold mb-3">{ONBOARDING_STEPS[onboardingStep].title}</h2>
+                <p className="text-sm leading-7 whitespace-pre-line" style={{ color: "var(--text-secondary)" }}>{ONBOARDING_STEPS[onboardingStep].desc}</p>
+              </div>
+              {/* Step indicator dots */}
+              <div className="flex justify-center gap-1.5 pb-3">
+                {ONBOARDING_STEPS.map((_, i) => (
+                  <div key={i} className="rounded-full transition-all" style={{ width: i === onboardingStep ? "18px" : "6px", height: "6px", background: i === onboardingStep ? "var(--accent)" : i < onboardingStep ? "var(--blue)" : "var(--border)" }} />
+                ))}
+              </div>
+              {/* Actions */}
+              <div className="flex items-center justify-between p-4" style={{ borderTop: "1px solid var(--border)" }}>
+                <button onClick={() => { setOnboardingStep(-1); try { localStorage.setItem("albayan-onboarded", "1"); } catch {} }}
+                  className="text-xs font-bold px-3 py-2 rounded-lg" style={{ color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                  {isAr ? "تخطي" : "Skip"}
+                </button>
+                <div className="flex gap-2">
+                  {onboardingStep > 0 && (
+                    <button onClick={() => setOnboardingStep(s => s - 1)}
+                      className="text-xs font-bold px-4 py-2 rounded-lg" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontFamily: "inherit" }}>
+                      {isAr ? "السابق" : "Back"}
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    if (onboardingStep === ONBOARDING_STEPS.length - 1) {
+                      setOnboardingStep(-1);
+                      try { localStorage.setItem("albayan-onboarded", "1"); } catch {}
+                      requestNotificationPermission();
+                    } else {
+                      setOnboardingStep(s => s + 1);
+                      if (ONBOARDING_STEPS[onboardingStep + 1]?.id === "notifications") requestNotificationPermission();
+                    }
+                  }}
+                    className="text-xs font-bold px-5 py-2 rounded-lg text-white" style={{ background: "var(--accent)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                    {onboardingStep === ONBOARDING_STEPS.length - 1 ? (isAr ? "ابدأ الاستخدام" : "Get Started") : (isAr ? "التالي" : "Next")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

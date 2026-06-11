@@ -27,7 +27,8 @@ function loadSettings(): UserSettings {
 }
 
 export default function SettingsPage() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
+  const isAr = lang === "ar";
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
   const [notifStatus, setNotifStatus] = useState<"default" | "granted" | "denied">("default");
@@ -44,15 +45,22 @@ export default function SettingsPage() {
     if (typeof Notification === "undefined") return;
     const perm = await Notification.requestPermission();
     setNotifStatus(perm as any);
-    if (perm === "granted") new Notification(t("siteName"), { body: t("notifEnabled"), icon: "/new_logo.jpg" });
+    if (perm === "granted") new Notification(t("siteName"), { body: t("notifEnabled"), icon: "/logo-dark.png" });
   }
+
+  const SOUND_FILES: Record<string, string> = {
+    beep: "/sounds/alert-beep.wav",
+    alarm: "/sounds/alert-alarm.wav",
+    chime: "/sounds/alert-chime.wav",
+    siren: "/sounds/alert-siren.wav",
+  };
 
   function previewSound(type: string) {
     try {
-      const ctx = new AudioContext();
-      if (type === "alarm") { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 800; o.type = "sawtooth"; g.gain.value = 0.08; o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.stop(ctx.currentTime + 0.3); }
-      else if (type === "chime") { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 523; o.type = "sine"; g.gain.value = 0.1; o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4); o.stop(ctx.currentTime + 0.4); }
-      else { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = 880; o.type = "sine"; g.gain.value = 0.12; o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); o.stop(ctx.currentTime + 0.5); }
+      const src = SOUND_FILES[type] || SOUND_FILES.beep;
+      const audio = new Audio(src);
+      audio.volume = 0.35;
+      audio.play().catch(() => {});
     } catch {}
   }
 
@@ -125,15 +133,35 @@ export default function SettingsPage() {
             {/* Sound type */}
             {settings.soundEnabled && (
               <Section title={t("soundType")}>
-                <div className="grid grid-cols-3 gap-3">
-                  {(["beep", "alarm", "chime"] as const).map((s) => (
-                    <button key={s} onClick={() => { update("soundType", s); previewSound(s); }}
-                      className="rounded-xl p-4 text-center font-bold transition"
-                      style={{ background: settings.soundType === s ? "var(--accent)" : "var(--bg-main)", color: settings.soundType === s ? "white" : "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                      {t(s === "beep" ? "soundBeep" : s === "alarm" ? "soundAlarm" : "soundChime")}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { key: "beep", label: "soundBeep", icon: "🔔" },
+                    { key: "alarm", label: "soundAlarm", icon: "🚨" },
+                    { key: "chime", label: "soundChime", icon: "🎵" },
+                    { key: "siren", label: "siren", icon: "⚠️" },
+                  ] as const).map((s) => {
+                    const selected = settings.soundType === s.key;
+                    return (
+                      <div key={s.key} className="rounded-xl overflow-hidden transition"
+                        style={{ background: selected ? "var(--accent)" : "var(--bg-main)", border: "1px solid var(--border)" }}>
+                        <button onClick={() => update("soundType", s.key)}
+                          className="w-full p-4 text-center font-bold"
+                          style={{ color: selected ? "white" : "var(--text-secondary)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "14px" }}>
+                          <span className="block text-lg mb-1">{s.icon}</span>
+                          {s.key === "siren" ? (isAr ? "صفارة إنذار" : "Siren") : t(s.label)}
+                        </button>
+                        <button onClick={() => previewSound(s.key)}
+                          className="w-full py-2 text-[11px] font-bold transition"
+                          style={{ background: selected ? "rgba(255,255,255,0.15)" : "var(--bg-card)", color: selected ? "rgba(255,255,255,0.85)" : "var(--text-muted)", borderTop: `1px solid ${selected ? "rgba(255,255,255,0.15)" : "var(--border)"}`, cursor: "pointer", border: "none", fontFamily: "inherit" }}>
+                          ▶ {isAr ? "تشغيل" : "Preview"}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
+                <p className="text-[11px] mt-3 leading-5" style={{ color: "var(--text-muted)" }}>
+                  {isAr ? "صفارات الإنذار تستخدم صوت الصفارة تلقائيًا بغض النظر عن الإعداد المختار." : "Siren alerts always use the siren sound regardless of your selection."}
+                </p>
               </Section>
             )}
 
