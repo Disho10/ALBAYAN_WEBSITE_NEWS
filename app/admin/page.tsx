@@ -46,12 +46,19 @@ type Template = { name: string; type: string; description: string; duration: str
 type LogEntry = { action: string; area: string; time: string; admin: string };
 
 const DURATION_OPTIONS = [
+  { value: "15", label: "15 دقيقة" },
   { value: "30", label: "30 دقيقة" },
+  { value: "45", label: "45 دقيقة" },
   { value: "60", label: "ساعة" },
+  { value: "120", label: "ساعتان" },
   { value: "180", label: "3 ساعات" },
   { value: "360", label: "6 ساعات" },
+  { value: "480", label: "8 ساعات" },
   { value: "720", label: "12 ساعة" },
   { value: "1440", label: "24 ساعة" },
+  { value: "2880", label: "يومان" },
+  { value: "4320", label: "3 أيام" },
+  { value: "10080", label: "أسبوع" },
   { value: "permanent", label: "دائم" },
 ];
 
@@ -176,6 +183,7 @@ export default function AdminPage() {
   const [isAllowed, setIsAllowed] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [, setTick] = useState(0);
 
@@ -211,11 +219,13 @@ export default function AdminPage() {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAllowed(!!session); setAuthLoading(false);
-      if (session) loadAlerts();
+      if (session) { setAdminEmail(session.user?.email || ""); loadAlerts(); }
     }
     checkSession();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAllowed(!!session); if (session) loadAlerts();
+      setIsAllowed(!!session);
+      if (session) { setAdminEmail(session.user?.email || ""); loadAlerts(); }
+      else setAdminEmail("");
     });
     return () => { listener.subscription.unsubscribe(); };
   }, [loadAlerts]);
@@ -238,9 +248,9 @@ export default function AdminPage() {
 
   async function handleLogin() {
     setAuthError(""); setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setAuthError(error.message === "Invalid login credentials" ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : error.message);
-    else { setIsAllowed(true); loadAlerts(); }
+    else { setIsAllowed(true); setAdminEmail(data.session?.user?.email || email); loadAlerts(); }
     setAuthLoading(false);
   }
 
@@ -344,10 +354,10 @@ export default function AdminPage() {
 
   /* ── Helper functions for bulk edit, templates, duplication, activity log ── */
   function addLog(action: string, area: string) {
-    const entry: LogEntry = { action, area, time: new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }), admin: email || "admin" };
+    const entry: LogEntry = { action, area, time: new Date().toLocaleTimeString("ar-LB", { hour: "2-digit", minute: "2-digit" }), admin: adminEmail || email || "admin" };
     setActivityLog(prev => [entry, ...prev].slice(0, 50));
     // Persist to Supabase admin_logs table
-    supabase.from("admin_logs").insert({ admin_email: email || "admin", action, area }).then(() => {});
+    supabase.from("admin_logs").insert({ admin_email: adminEmail || email || "admin", action, area }).then(() => {});
   }
 
   // Load activity logs from Supabase on mount
@@ -517,6 +527,11 @@ export default function AdminPage() {
             <span style={{ width: "6px", height: "6px", background: "#22C55E", borderRadius: "50%", animation: "pulse 2s infinite", display: "inline-block" }} />
             <span style={{ fontSize: "11px", color: "#22C55E", fontWeight: 700 }}>النظام يعمل</span>
           </div>
+          {adminEmail && (
+            <span style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 600, maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }} dir="ltr" title={adminEmail}>
+              {adminEmail}
+            </span>
+          )}
           <button onClick={handleLogout} className="adm-btn-ghost" style={{ display: "flex", alignItems: "center", gap: "6px", background: "transparent", border: "1px solid #1E3350", borderRadius: "8px", padding: "6px 12px", color: "#5A6B80", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
             <LogOut size={12} />خروج
           </button>
@@ -682,10 +697,25 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <SectionLabel>النطاق (م)</SectionLabel>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(10,22,40,0.7)", border: "1px solid #1E3350", borderRadius: "10px", padding: "8px 14px" }}>
-                    <input type="range" min="300" max="10000" step="100" value={radius} onChange={(e) => setRadius(e.target.value)}
-                      style={{ flex: 1, accentColor: "#5BA4E6", cursor: "pointer" }} />
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#5BA4E6", minWidth: "48px", textAlign: "center" as const, fontVariantNumeric: "tabular-nums" }}>{radius}m</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input type="number" value={radius} onChange={(e) => setRadius(e.target.value)} dir="ltr" min="100" step="100"
+                      style={{ ...inp, flex: 1 }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = "#5BA4E6"}
+                      onBlur={(e) => e.currentTarget.style.borderColor = "#1E3350"} />
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#5BA4E6", whiteSpace: "nowrap" as const }}>
+                      {Number(radius) >= 1000 ? `${(Number(radius) / 1000).toFixed(1)} كم` : `${radius} م`}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" as const }}>
+                    {["500", "900", "2000", "5000", "10000", "25000", "50000"].map((v) => (
+                      <button key={v} type="button" onClick={() => setRadius(v)}
+                        style={{ padding: "3px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
+                          background: radius === v ? "rgba(91,164,230,0.12)" : "rgba(10,22,40,0.55)",
+                          border: `1px solid ${radius === v ? "rgba(91,164,230,0.3)" : "#1E3350"}`,
+                          color: radius === v ? "#5BA4E6" : "#5A6B80" }}>
+                        {Number(v) >= 1000 ? `${Number(v) / 1000}km` : `${v}m`}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1018,10 +1048,25 @@ export default function AdminPage() {
               </div>
               <div>
                 <div style={{ fontSize: "10px", color: "#5A6B80", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>نطاق التأثير (متر)</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <input type="range" min="500" max="10000" step="100" value={editRadius} onChange={(e) => setEditRadius(e.target.value)}
-                    style={{ flex: 1, accentColor: "#5BA4E6" }} />
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#5BA4E6", minWidth: "50px", textAlign: "center" as const }}>{editRadius}m</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input type="number" value={editRadius} onChange={(e) => setEditRadius(e.target.value)} dir="ltr" min="100" step="100"
+                    style={{ ...inp, flex: 1 }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = "#5BA4E6"}
+                    onBlur={(e) => e.currentTarget.style.borderColor = "#1E3350"} />
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#5BA4E6", whiteSpace: "nowrap" as const }}>
+                    {Number(editRadius) >= 1000 ? `${(Number(editRadius) / 1000).toFixed(1)} كم` : `${editRadius} م`}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" as const }}>
+                  {["500", "900", "2000", "5000", "10000", "25000", "50000"].map((v) => (
+                    <button key={v} type="button" onClick={() => setEditRadius(v)}
+                      style={{ padding: "3px 8px", borderRadius: "6px", fontSize: "10px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 0.1s",
+                        background: editRadius === v ? "rgba(91,164,230,0.12)" : "rgba(10,22,40,0.55)",
+                        border: `1px solid ${editRadius === v ? "rgba(91,164,230,0.3)" : "#1E3350"}`,
+                        color: editRadius === v ? "#5BA4E6" : "#5A6B80" }}>
+                      {Number(v) >= 1000 ? `${Number(v) / 1000}km` : `${v}m`}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.11)", borderRadius: "10px", padding: "12px 14px" }}>
