@@ -310,24 +310,35 @@ export default function Home() {
 
   function finishTour() {
     setTourStep(-1); setTourRect(null);
+    setFilterPanelOpen(false); setLayerPanelOpen(false);
     try { localStorage.setItem("albayan-onboarded", "1"); } catch {}
     requestNotificationPermission();
     // Show the support popup after a brief delay
     setTimeout(() => setShowSupportPopup(true), 600);
   }
 
-  // Update highlight rect when tour step changes
+  // Update highlight rect + open relevant panels when tour step changes
   useEffect(() => {
     if (tourStep < 0 || tourStep >= TOUR_STEPS.length) { setTourRect(null); return; }
     const step = TOUR_STEPS[tourStep];
+
+    // Open/close panels based on current step
+    setFilterPanelOpen(step.id === "filter");
+    setLayerPanelOpen(step.id === "layers");
+
     if (!step.target) { setTourRect(null); return; }
-    const el = document.querySelector(step.target);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      setTourRect(rect);
-    } else {
-      setTourRect(null);
-    }
+
+    // Small delay so panels render before we measure
+    const timer = setTimeout(() => {
+      const el = document.querySelector(step.target!);
+      if (el) {
+        setTourRect(el.getBoundingClientRect());
+      } else {
+        setTourRect(null);
+      }
+    }, step.id === "filter" || step.id === "layers" ? 150 : 0);
+
+    return () => clearTimeout(timer);
   }, [tourStep, TOUR_STEPS]);
 
   // Support popup — show once after 5 minutes
@@ -972,8 +983,8 @@ export default function Home() {
         {/* Filter + Time + Layers panels */}
         <div className={`absolute z-20 ${isAr ? "right-3" : "left-3"} ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-14" : "top-3"} flex gap-2`}>
           {/* Filter */}
-          <div className="relative">
-            <button data-tour="filter" onClick={() => { setFilterPanelOpen(!filterPanelOpen); setLayerPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
+          <div data-tour="filter" className="relative">
+            <button onClick={() => { setFilterPanelOpen(!filterPanelOpen); setLayerPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Filter size={14} /><span>{t("filter")}</span>
               {activeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px] text-white" style={{ background: "var(--accent)" }}>{activeFilterLabel && t(activeFilterLabel)}</span>}
               {timeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>{timeFilter}</span>}
@@ -1006,8 +1017,8 @@ export default function Home() {
           </div>
 
           {/* Layers */}
-          <div className="relative">
-            <button data-tour="layers" onClick={() => { setLayerPanelOpen(!layerPanelOpen); setFilterPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
+          <div data-tour="layers" className="relative">
+            <button onClick={() => { setLayerPanelOpen(!layerPanelOpen); setFilterPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Layers size={14} /><span className="hidden sm:inline">{t("layers")}</span>
             </button>
             {layerPanelOpen && (
