@@ -759,9 +759,44 @@ export default function Home() {
     const strikeOnly = visibleAlerts.filter((a) => a.type === "strike");
     const artilleryOnly = visibleAlerts.filter((a) => a.type === "artillery");
 
+    /* Compute offsets for co-located strike + artillery markers */
+    const allBombAlerts = [...strikeOnly, ...artilleryOnly];
+    const offsetCoords = new Map<number, [number, number]>();
+    const proximity = 0.0008; // ~80m threshold for "same spot"
+    const offsetRadius = 0.0006; // ~60m ring radius
+    const used = new Set<number>();
+
+    for (const a of allBombAlerts) {
+      if (used.has(a.id)) continue;
+      const cluster = [a];
+      used.add(a.id);
+      for (const b of allBombAlerts) {
+        if (used.has(b.id)) continue;
+        if (Math.abs(a.lat - b.lat) < proximity && Math.abs(a.lng - b.lng) < proximity) {
+          cluster.push(b);
+          used.add(b.id);
+        }
+      }
+      if (cluster.length > 1) {
+        const cLat = cluster.reduce((s, x) => s + x.lat, 0) / cluster.length;
+        const cLng = cluster.reduce((s, x) => s + x.lng, 0) / cluster.length;
+        cluster.forEach((item, i) => {
+          const angle = (2 * Math.PI * i) / cluster.length - Math.PI / 2;
+          offsetCoords.set(item.id, [
+            cLng + offsetRadius * Math.cos(angle),
+            cLat + offsetRadius * Math.sin(angle),
+          ]);
+        });
+      }
+    }
+
+    function getCoords(a: AlertItem): [number, number] {
+      return offsetCoords.get(a.id) || [a.lng, a.lat];
+    }
+
     /* ── Airstrikes: red clustered circles ── */
     if (strikeOnly.length > 0) {
-      const fc = { type: "FeatureCollection", features: strikeOnly.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
+      const fc = { type: "FeatureCollection", features: strikeOnly.map((a) => { const c = getCoords(a); return { type: "Feature", geometry: { type: "Point", coordinates: c }, properties: { id: a.id } }; }) };
       if (!map.getSource("strikes-cluster")) {
         map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 45 });
         activeSourceIdsRef.current.push("strikes-cluster");
@@ -818,11 +853,12 @@ export default function Home() {
 
     /* ── Artillery: orange diamond DOM markers ── */
     artilleryOnly.forEach((alert) => {
+      const [lng, lat] = getCoords(alert);
       const el = document.createElement("div");
       el.className = "artillery-marker";
       el.style.cssText = "width:14px;height:14px;background:#F97316;border:2px solid rgba(255,255,255,0.85);transform:rotate(45deg);cursor:pointer;box-shadow:0 0 6px rgba(249,115,22,0.5);";
       el.addEventListener("click", (ev) => { ev.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
-      strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([alert.lng, alert.lat]).addTo(map));
+      strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map));
     });
   }, [visibleAlerts, mapReady, userSettings.highlightAreas, theme, lang]);
 
