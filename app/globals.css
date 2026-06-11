@@ -259,10 +259,49 @@ p, span, a, button, input, textarea, select, label, div { font-weight: 600; }
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: var(--shadow-sm);
+  -webkit-tap-highlight-color: transparent;
 }
 .map-btn:hover {
   background: var(--bg-elevated);
   color: var(--text);
+}
+.map-btn:active {
+  transform: scale(0.93);
+}
+
+/* ── Safe area support (iPhone notch, home bar) ───────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-bottom-extra { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }
+}
+
+/* ── Mobile touch optimizations ──────────────────────── */
+@media (max-width: 768px) {
+  /* Larger touch targets on map controls */
+  .map-btn { width: 44px; height: 44px; border-radius: 12px; }
+
+  /* Popup scales down for small screens */
+  .maplibregl-popup { max-width: calc(100vw - 24px) !important; }
+  .maplibregl-popup-content { max-width: calc(100vw - 24px) !important; }
+
+  /* Glass panels get slightly rounded */
+  .glass-panel { border-radius: 14px; }
+
+  /* Prevent text selection on interactive elements */
+  button, a, .map-btn { -webkit-user-select: none; user-select: none; }
+
+  /* Filter/layer dropdowns go wider on mobile */
+  .mobile-panel-full { width: calc(100vw - 24px) !important; max-width: 320px; }
+}
+
+@media (max-width: 380px) {
+  /* Very small phones — tighten spacing */
+  .map-btn { width: 40px; height: 40px; }
+}
+
+/* ── Smooth transitions for panels ───────────────────── */
+.panel-slide {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
 }
 
 /* Slide-up animation for donation sheet */

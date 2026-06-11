@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import ThemeProvider from "@/app/components/ThemeProvider";
@@ -11,6 +11,14 @@ const dubai = localFont({
   ],
   variable: "--font-dubai",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "البيان الإخباري — من قلب الحدث",

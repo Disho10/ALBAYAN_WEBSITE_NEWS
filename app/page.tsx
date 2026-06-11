@@ -173,9 +173,9 @@ function createAlertPopupHTML(alert: AlertItem, theme: string, lang: string) {
   const copiedLabel = isAr ? "✓ تم" : "✓ Done";
   const dir = isAr ? "rtl" : "ltr";
   const txtAlign = isAr ? "right" : "left";
-  const btnStyle = `display:flex;align-items:center;justify-content:center;gap:5px;background:${sub};border:1px solid ${border};border-radius:10px;padding:9px 0;font-size:11px;font-weight:700;color:${muted};cursor:pointer;text-decoration:none;transition:opacity 0.15s;`;
+  const btnStyle = `display:flex;align-items:center;justify-content:center;gap:5px;background:${sub};border:1px solid ${border};border-radius:10px;padding:11px 0;font-size:11px;font-weight:700;color:${muted};cursor:pointer;text-decoration:none;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;`;
 
-  return `<div dir="${dir}" style="width:285px;background:${bg};color:${text};border:1px solid ${border};border-radius:16px;overflow:hidden;font-family:inherit;box-shadow:0 16px 40px rgba(0,0,0,${theme === "light" ? "0.12" : "0.5"});">
+  return `<div dir="${dir}" style="width:min(285px,calc(100vw - 40px));background:${bg};color:${text};border:1px solid ${border};border-radius:16px;overflow:hidden;font-family:inherit;box-shadow:0 16px 40px rgba(0,0,0,${theme === "light" ? "0.12" : "0.5"});">
     <div style="height:3px;background:linear-gradient(${isAr ? "90deg" : "270deg"},${color},${color}88);"></div>
     <div style="padding:16px 18px 14px;text-align:${txtAlign};">
       <div style="margin-bottom:12px;">
@@ -1031,7 +1031,7 @@ export default function Home() {
               {timeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>{timeFilter}</span>}
             </button>
             {filterPanelOpen && (
-              <div data-tour-dropdown="filter" className="glass-panel mt-2 p-3 w-56 space-y-1 absolute top-full">
+              <div data-tour-dropdown="filter" className="glass-panel mobile-panel-full mt-2 p-3 w-56 space-y-1 absolute top-full">
                 <p className="text-[10px] font-bold mb-1 tracking-widest" style={{ color: "var(--text-muted)" }}>{t("filter")}</p>
                 {FILTERS.map((f) => (
                   <button key={f.value} onClick={() => { setActiveFilter(f.value); setFilterPanelOpen(false); }}
@@ -1063,7 +1063,7 @@ export default function Home() {
               <Layers size={14} /><span className="hidden sm:inline">{t("layers")}</span>
             </button>
             {layerPanelOpen && (
-              <div data-tour-dropdown="layers" className="glass-panel mt-2 p-3 w-52 space-y-1 absolute top-full">
+              <div data-tour-dropdown="layers" className="glass-panel mobile-panel-full mt-2 p-3 w-52 space-y-1 absolute top-full">
                 {(["default", "satellite"] as const).map((s) => (
                   <button key={s} onClick={() => changeMapStyle(s)}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition"
@@ -1124,7 +1124,7 @@ export default function Home() {
               <button onClick={() => setSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}><XIcon size={14} /></button>
             </div>
             {/* Alert list */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className="flex-1 overflow-y-auto p-3 pb-6 space-y-2 safe-bottom-extra">
               {visibleAlerts.length === 0 ? (
                 <p className="text-xs text-center py-12" style={{ color: "var(--text-muted)" }}>{t("noEvents")}</p>
               ) : visibleAlerts.map((alert) => {
@@ -1134,7 +1134,7 @@ export default function Home() {
                 const fullTime = alert.created_at ? new Date(alert.created_at).toLocaleString(isAr ? "ar-LB" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "";
                 return (
                   <button key={alert.id} onClick={() => { setSidebarOpen(false); setDrawerAlert(alert); mapInstance.current?.flyTo({ center: [alert.lng, alert.lat], zoom: 13.5, speed: 1.2 }); }}
-                    className="w-full rounded-xl p-4 transition relative overflow-hidden group" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", textAlign: isAr ? "right" : "left" }}>
+                    className="w-full rounded-xl p-4 md:p-4 transition relative overflow-hidden group active:scale-[0.98]" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", textAlign: isAr ? "right" : "left" }}>
                     <div className={`absolute ${isAr ? "right-0" : "left-0"} top-0 bottom-0 w-[3px]`} style={{ backgroundColor: color }} />
                     <div className={isAr ? "pr-3" : "pl-3"}>
                       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -1162,7 +1162,7 @@ export default function Home() {
         {/* Events toggle button (when panel is closed) */}
         {!sidebarOpen && !drawerAlert && (
           <button data-tour="events" onClick={() => { setSidebarOpen(true); setDrawerAlert(null); setMobileMenuOpen(false); setFilterPanelOpen(false); setLayerPanelOpen(false); }}
-            className={`absolute ${isAr ? "left-3" : "right-3"} bottom-24 md:bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
+            className={`absolute ${isAr ? "left-3" : "right-3"} bottom-6 md:bottom-12 z-10 glass-panel flex items-center gap-2 px-4 py-2.5 md:px-3 md:py-2 text-xs font-bold cursor-pointer`}>
             <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
             <span>{t("events")}</span>
             <ChevronUp size={14} style={{ color: "var(--text-muted)" }} />
@@ -1280,7 +1280,7 @@ export default function Home() {
               })()}
             </div>
             {/* Share button */}
-            <div className="flex-shrink-0 p-4" style={{ borderTop: "1px solid var(--border)" }}>
+            <div className="flex-shrink-0 p-4 safe-bottom" style={{ borderTop: "1px solid var(--border)" }}>
               <button onClick={() => {
                 const url = `${SITE_URL}/?alert=${drawerAlert.id}`;
                 if (navigator.share) navigator.share({ title: drawerAlert.area, url }).catch(() => {});
@@ -1363,8 +1363,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Bottom bar */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center h-8 text-[10px]"
+        {/* Bottom bar — hidden on mobile (links are in the mobile menu) */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 hidden md:flex items-center justify-center h-8 text-[10px] safe-bottom"
           style={{ background: "var(--bg-surface)", backdropFilter: "blur(16px)", borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
           <span>{t("siteName")} — {t("liveMap")}</span>
           <span className="mx-2">|</span>
