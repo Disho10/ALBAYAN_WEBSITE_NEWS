@@ -289,7 +289,7 @@ export default function Home() {
     { id: "filter", target: "[data-tour='filter']",
       title: isAr ? "تصفية الأحداث" : "Filter Alerts",
       desc: isAr ? "اختر أنواع التنبيهات التي تريد عرضها: غارات، مسيّرات، تهديدات، صفارات إنذار، وغيرها. يمكنك أيضًا التصفية حسب الوقت." : "Choose which alert types to display: strikes, drones, threats, sirens, and more. You can also filter by time period.",
-      pos: "below" as const },
+      pos: "bottom" as const },
     { id: "events", target: "[data-tour='events']",
       title: isAr ? "قائمة الأحداث" : "Events List",
       desc: isAr ? "اضغط هنا لعرض جميع التنبيهات في قائمة. اضغط على أي حدث للانتقال إليه على الخريطة." : "Tap here to see all active alerts in a list. Tap any alert to fly to it on the map and see full details.",
@@ -297,7 +297,7 @@ export default function Home() {
     { id: "layers", target: "[data-tour='layers']",
       title: isAr ? "طبقات الخريطة" : "Map Layers",
       desc: isAr ? "بدّل بين الخريطة العادية والأقمار الاصطناعية، أو فعّل خريطة الحرارة." : "Switch between standard and satellite view, or enable the heatmap overlay.",
-      pos: "below" as const },
+      pos: "bottom" as const },
     { id: "tools", target: "[data-tour='tools']",
       title: isAr ? "أدوات الخريطة" : "Map Tools",
       desc: isAr ? "تكبير/تصغير · تحديد موقعك · قياس المسافة بين نقطتين. اختصارات: F=تصفية S=بحث L=موقع" : "Zoom in/out · Find your location · Measure distance between two points. Shortcuts: F=Filter S=Search L=Locate",
@@ -1338,12 +1338,15 @@ export default function Home() {
       {/* ─── GUIDED TOUR ────────────────────────────────── */}
       {tourStep >= 0 && tourStep < TOUR_STEPS.length && (() => {
         const step = TOUR_STEPS[tourStep];
-        const isCentered = step.pos === "center" || !tourRect;
+        const isCentered = step.pos === "center" || (!tourRect && step.pos !== "bottom");
+        const isBottom = step.pos === "bottom";
         const pad = 12;
 
         // Calculate tooltip position
         let tooltipStyle: React.CSSProperties = {};
-        if (!isCentered && tourRect) {
+        if (isBottom) {
+          tooltipStyle = { position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 110 };
+        } else if (!isCentered && tourRect) {
           const cx = tourRect.left + tourRect.width / 2;
           const cy = tourRect.top + tourRect.height / 2;
           if (step.pos === "below") {
