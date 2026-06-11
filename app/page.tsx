@@ -759,44 +759,12 @@ export default function Home() {
     const strikeOnly = visibleAlerts.filter((a) => a.type === "strike");
     const artilleryOnly = visibleAlerts.filter((a) => a.type === "artillery");
 
-    /* Compute offsets for co-located strike + artillery markers */
-    const allBombAlerts = [...strikeOnly, ...artilleryOnly];
-    const offsetCoords = new Map<number, [number, number]>();
-    const proximity = 0.0008; // ~80m threshold for "same spot"
-    const offsetRadius = 0.0006; // ~60m ring radius
-    const used = new Set<number>();
+    /* Build a set of strike locations for overlap detection */
+    const strikeLocSet = new Set(strikeOnly.map(a => `${a.lat.toFixed(4)},${a.lng.toFixed(4)}`));
 
-    for (const a of allBombAlerts) {
-      if (used.has(a.id)) continue;
-      const cluster = [a];
-      used.add(a.id);
-      for (const b of allBombAlerts) {
-        if (used.has(b.id)) continue;
-        if (Math.abs(a.lat - b.lat) < proximity && Math.abs(a.lng - b.lng) < proximity) {
-          cluster.push(b);
-          used.add(b.id);
-        }
-      }
-      if (cluster.length > 1) {
-        const cLat = cluster.reduce((s, x) => s + x.lat, 0) / cluster.length;
-        const cLng = cluster.reduce((s, x) => s + x.lng, 0) / cluster.length;
-        cluster.forEach((item, i) => {
-          const angle = (2 * Math.PI * i) / cluster.length - Math.PI / 2;
-          offsetCoords.set(item.id, [
-            cLng + offsetRadius * Math.cos(angle),
-            cLat + offsetRadius * Math.sin(angle),
-          ]);
-        });
-      }
-    }
-
-    function getCoords(a: AlertItem): [number, number] {
-      return offsetCoords.get(a.id) || [a.lng, a.lat];
-    }
-
-    /* ── Airstrikes: red clustered circles ── */
+    /* ── Airstrikes: red clustered circles (no coordinate changes) ── */
     if (strikeOnly.length > 0) {
-      const fc = { type: "FeatureCollection", features: strikeOnly.map((a) => { const c = getCoords(a); return { type: "Feature", geometry: { type: "Point", coordinates: c }, properties: { id: a.id } }; }) };
+      const fc = { type: "FeatureCollection", features: strikeOnly.map((a) => ({ type: "Feature", geometry: { type: "Point", coordinates: [a.lng, a.lat] }, properties: { id: a.id } })) };
       if (!map.getSource("strikes-cluster")) {
         map.addSource("strikes-cluster", { type: "geojson", data: fc as any, cluster: true, clusterMaxZoom: 14, clusterRadius: 45 });
         activeSourceIdsRef.current.push("strikes-cluster");
@@ -852,13 +820,36 @@ export default function Home() {
     }
 
     /* ── Artillery: orange diamond DOM markers ── */
-    artilleryOnly.forEach((alert) => {
-      const [lng, lat] = getCoords(alert);
-      const el = document.createElement("div");
-      el.className = "artillery-marker";
-      el.style.cssText = "width:14px;height:14px;background:#F97316;border:2px solid rgba(255,255,255,0.85);transform:rotate(45deg);cursor:pointer;box-shadow:0 0 6px rgba(249,115,22,0.5);";
-      el.addEventListener("click", (ev) => { ev.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
-      strikeMarkersRef.current.push(new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map));
+    // Group artillery by location to spread overlaps
+    const artGroups = new Map<string, AlertItem[]>();
+    artilleryOnly.forEach((a) => {
+      const key = `${a.lat.toFixed(4)},${a.lng.toFixed(4)}`;
+      if (!artGroups.has(key)) artGroups.set(key, []);
+      artGroups.get(key)!.push(a);
+    });
+
+    artGroups.forEach((group, locKey) => {
+      const hasStrike = strikeLocSet.has(locKey);
+      // Total items sharing this spot (including the strike if present)
+      const totalAtSpot = group.length + (hasStrike ? 1 : 0);
+
+      group.forEach((alert, i) => {
+        const el = document.createElement("div");
+        el.className = "artillery-marker";
+        el.style.cssText = "width:14px;height:14px;background:#F97316;border:2px solid rgba(255,255,255,0.85);transform:rotate(45deg);cursor:pointer;box-shadow:0 0 6px rgba(249,115,22,0.5);";
+        el.addEventListener("click", (ev) => { ev.stopPropagation(); showAlertPopup(alert, [alert.lng, alert.lat]); });
+
+        let offset: [number, number] = [0, 0];
+        if (totalAtSpot > 1) {
+          // Arrange in a ring — if a strike occupies index 0, artillery starts from index 1
+          const slotIndex = hasStrike ? i + 1 : i;
+          const angle = (2 * Math.PI * slotIndex) / totalAtSpot - Math.PI / 2;
+          const r = 14; // pixel radius of the ring
+          offset = [Math.round(r * Math.cos(angle)), Math.round(r * Math.sin(angle))];
+        }
+
+        strikeMarkersRef.current.push(new maplibregl.Marker({ element: el, offset }).setLngLat([alert.lng, alert.lat]).addTo(map));
+      });
     });
   }, [visibleAlerts, mapReady, userSettings.highlightAreas, theme, lang]);
 
