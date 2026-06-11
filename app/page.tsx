@@ -274,17 +274,61 @@ export default function Home() {
   const [drawerAlert, setDrawerAlert] = useState<AlertItem | null>(null);
   const [showSupportPopup, setShowSupportPopup] = useState(false);
 
-  /* Onboarding */
-  const [onboardingStep, setOnboardingStep] = useState(-1); // -1 = not shown
-  const ONBOARDING_STEPS = useMemo(() => [
-    { id: "welcome", title: isAr ? "مرحبًا بك في البيان الإخباري" : "Welcome to AlBayan News", desc: isAr ? "منصة تنبيهات لبنان الحية. دعنا نريك كيف تستخدم الخريطة بأقل من دقيقة." : "Lebanon's live alert map. Let us show you the key features in under a minute.", icon: "🗺️" },
-    { id: "filters", title: isAr ? "تصفية الأحداث" : "Filter Alerts", desc: isAr ? "استخدم شريط التصفية لعرض أنواع محددة: غارات، تهديدات، مسيّرات، صفارات إنذار، وغيرها. يمكنك أيضًا التصفية حسب الوقت." : "Use the filter bar to show specific types: strikes, threats, drones, sirens, and more. You can also filter by time.", icon: "🎯" },
-    { id: "events", title: isAr ? "قائمة الأحداث" : "Events Panel", desc: isAr ? "اضغط على زر «أحداث» لعرض جميع التنبيهات النشطة. اضغط على أي حدث للانتقال إليه على الخريطة ومشاهدة التفاصيل." : "Tap 'Events' to see all active alerts in a list. Tap any event to fly to it on the map and see full details.", icon: "📋" },
-    { id: "layers", title: isAr ? "طبقات الخريطة" : "Map Layers", desc: isAr ? "بدّل بين الخريطة العادية وصور الأقمار الاصطناعية، أو فعّل خريطة الحرارة لرؤية مناطق التركيز." : "Switch between standard and satellite view, or enable the heatmap to see concentration areas.", icon: "🗂️" },
-    { id: "types", title: isAr ? "أنواع التنبيهات" : "Alert Types", desc: isAr ? "كل لون على الخريطة يمثّل نوعًا مختلفًا:\n🔴 غارة (دائرة) · 🟠 قصف مدفعي (مربع)\n🟡 تهديد · 🟣 موقع عدو · 🟢 انتشار جيش\n🔵 مسيّرة · 🔴⚠ صفارة إنذار" : "Each color on the map represents a different type:\n🔴 Airstrike (circle) · 🟠 Artillery (square)\n🟡 Threat · 🟣 Enemy Position · 🟢 Army\n🔵 Drone · 🔴⚠ Siren Alert", icon: "🎨" },
-    { id: "tools", title: isAr ? "أدوات إضافية" : "Extra Tools", desc: isAr ? "📍 زر الموقع: يُظهر موقعك الحالي\n📏 المسطرة: قياس المسافة بين نقطتين\n🔍 البحث: ابحث عن أي بلدة لبنانية\n⌨️ اختصارات: F=تصفية S=بحث L=موقع" : "📍 Location: shows your current position\n📏 Ruler: measure distance between two points\n🔍 Search: find any Lebanese town\n⌨️ Shortcuts: F=Filter S=Search L=Locate", icon: "🛠️" },
-    { id: "notifications", title: isAr ? "الإشعارات" : "Stay Notified", desc: isAr ? "فعّل الإشعارات لتلقي تنبيهات فورية حتى لو كان المتصفح في الخلفية. يمكنك تخصيص صوت التنبيه من الإعدادات." : "Enable notifications to receive instant alerts even when the browser is in the background. Customize the sound in Settings.", icon: "🔔" },
+  /* Onboarding tour */
+  const [tourStep, setTourStep] = useState(-1); // -1 = not shown
+  const [tourRect, setTourRect] = useState<DOMRect | null>(null);
+  const TOUR_STEPS = useMemo(() => [
+    { id: "welcome", target: null,
+      title: isAr ? "مرحبًا بك في البيان الإخباري" : "Welcome to AlBayan News",
+      desc: isAr ? "خريطة تنبيهات لبنان الحية. دعنا نأخذك في جولة سريعة." : "Lebanon's live alert map. Let us give you a quick tour.",
+      pos: "center" as const },
+    { id: "status", target: "[data-tour='status']",
+      title: isAr ? "حالة الاتصال" : "Connection Status",
+      desc: isAr ? "النقطة الخضراء تعني أنك متصل وتتلقى التنبيهات لحظيًا." : "The green dot means you're connected and receiving alerts in real time.",
+      pos: "below" as const },
+    { id: "filter", target: "[data-tour='filter']",
+      title: isAr ? "تصفية الأحداث" : "Filter Alerts",
+      desc: isAr ? "اختر أنواع التنبيهات التي تريد عرضها: غارات، مسيّرات، تهديدات، صفارات إنذار، وغيرها. يمكنك أيضًا التصفية حسب الوقت." : "Choose which alert types to display: strikes, drones, threats, sirens, and more. You can also filter by time period.",
+      pos: "below" as const },
+    { id: "events", target: "[data-tour='events']",
+      title: isAr ? "قائمة الأحداث" : "Events List",
+      desc: isAr ? "اضغط هنا لعرض جميع التنبيهات في قائمة. اضغط على أي حدث للانتقال إليه على الخريطة." : "Tap here to see all active alerts in a list. Tap any alert to fly to it on the map and see full details.",
+      pos: "above" as const },
+    { id: "layers", target: "[data-tour='layers']",
+      title: isAr ? "طبقات الخريطة" : "Map Layers",
+      desc: isAr ? "بدّل بين الخريطة العادية والأقمار الاصطناعية، أو فعّل خريطة الحرارة." : "Switch between standard and satellite view, or enable the heatmap overlay.",
+      pos: "below" as const },
+    { id: "tools", target: "[data-tour='tools']",
+      title: isAr ? "أدوات الخريطة" : "Map Tools",
+      desc: isAr ? "تكبير/تصغير · تحديد موقعك · قياس المسافة بين نقطتين. اختصارات: F=تصفية S=بحث L=موقع" : "Zoom in/out · Find your location · Measure distance between two points. Shortcuts: F=Filter S=Search L=Locate",
+      pos: isAr ? "right" as const : "left" as const },
+    { id: "done", target: null,
+      title: isAr ? "أنت جاهز!" : "You're all set!",
+      desc: isAr ? "فعّل الإشعارات لتلقي التنبيهات حتى عندما يكون المتصفح في الخلفية. ساعدنا على الاستمرار بدعمك!" : "Enable notifications to get alerts even when the browser is in the background. Help us keep going with your support!",
+      pos: "center" as const },
   ], [isAr]);
+
+  function finishTour() {
+    setTourStep(-1); setTourRect(null);
+    try { localStorage.setItem("albayan-onboarded", "1"); } catch {}
+    requestNotificationPermission();
+    // Show the support popup after a brief delay
+    setTimeout(() => setShowSupportPopup(true), 600);
+  }
+
+  // Update highlight rect when tour step changes
+  useEffect(() => {
+    if (tourStep < 0 || tourStep >= TOUR_STEPS.length) { setTourRect(null); return; }
+    const step = TOUR_STEPS[tourStep];
+    if (!step.target) { setTourRect(null); return; }
+    const el = document.querySelector(step.target);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setTourRect(rect);
+    } else {
+      setTourRect(null);
+    }
+  }, [tourStep, TOUR_STEPS]);
 
   // Support popup — show once after 5 minutes
   useEffect(() => {
@@ -293,10 +337,10 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Onboarding — show on first visit
+  // Tour — show on first visit
   useEffect(() => {
     try {
-      if (!localStorage.getItem("albayan-onboarded")) setOnboardingStep(0);
+      if (!localStorage.getItem("albayan-onboarded")) setTourStep(0);
     } catch {}
     requestNotificationPermission();
   }, []);
@@ -825,7 +869,7 @@ export default function Home() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+            <div data-tour="status" className="flex items-center gap-3 text-xs" style={{ color: "var(--text-secondary)" }}>
               <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />{t("live")}</span>
               <span style={{ color: "var(--border)" }}>|</span><span>{t("coverageLebanon")}</span>
               {sirenCount > 0 && (<><span style={{ color: "var(--border)" }}>|</span><span className="font-bold" style={{ color: "var(--accent)" }}>{t("sirensIn")} {sirenCount} {t("areas")}</span></>)}
@@ -929,7 +973,7 @@ export default function Home() {
         <div className={`absolute z-20 ${isAr ? "right-3" : "left-3"} ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-14" : "top-3"} flex gap-2`}>
           {/* Filter */}
           <div className="relative">
-            <button onClick={() => { setFilterPanelOpen(!filterPanelOpen); setLayerPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
+            <button data-tour="filter" onClick={() => { setFilterPanelOpen(!filterPanelOpen); setLayerPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Filter size={14} /><span>{t("filter")}</span>
               {activeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px] text-white" style={{ background: "var(--accent)" }}>{activeFilterLabel && t(activeFilterLabel)}</span>}
               {timeFilter !== "all" && <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "var(--blue-soft)", color: "var(--blue)" }}>{timeFilter}</span>}
@@ -963,7 +1007,7 @@ export default function Home() {
 
           {/* Layers */}
           <div className="relative">
-            <button onClick={() => { setLayerPanelOpen(!layerPanelOpen); setFilterPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
+            <button data-tour="layers" onClick={() => { setLayerPanelOpen(!layerPanelOpen); setFilterPanelOpen(false); }} className="glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer">
               <Layers size={14} /><span className="hidden sm:inline">{t("layers")}</span>
             </button>
             {layerPanelOpen && (
@@ -1006,7 +1050,7 @@ export default function Home() {
         <div ref={mapRef} className="h-full w-full" />
 
         {/* Zoom + Locate */}
-        <div className={`absolute ${isAr ? "left-3" : "right-3"} z-20 flex flex-col gap-2 ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-14" : "top-3"}`}>
+        <div data-tour="tools" className={`absolute ${isAr ? "left-3" : "right-3"} z-20 flex flex-col gap-2 ${userSettings.urgentBar && urgentAlerts.length > 0 ? "top-14" : "top-3"}`}>
           <button onClick={zoomIn} className="map-btn" title={t("zoomIn")}><Plus size={16} /></button>
           <button onClick={zoomOut} className="map-btn" title={t("zoomOut")}><Minus size={16} /></button>
           <button onClick={locateUser} className="map-btn" title={t("myLocation")} style={{ color: "var(--blue)" }}><LocateFixed size={16} /></button>
@@ -1065,7 +1109,7 @@ export default function Home() {
 
         {/* Events toggle button (when panel is closed) */}
         {!sidebarOpen && !drawerAlert && (
-          <button onClick={() => { setSidebarOpen(true); setDrawerAlert(null); setMobileMenuOpen(false); setFilterPanelOpen(false); setLayerPanelOpen(false); }}
+          <button data-tour="events" onClick={() => { setSidebarOpen(true); setDrawerAlert(null); setMobileMenuOpen(false); setFilterPanelOpen(false); setLayerPanelOpen(false); }}
             className={`absolute ${isAr ? "left-3" : "right-3"} bottom-24 md:bottom-12 z-10 glass-panel flex items-center gap-2 px-3 py-2 text-xs font-bold cursor-pointer`}>
             <span className="px-1.5 py-0.5 rounded text-[10px] text-white min-w-[20px] text-center" style={{ background: "var(--accent)" }}>{visibleAlerts.length}</span>
             <span>{t("events")}</span>
@@ -1280,59 +1324,85 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ─── ONBOARDING OVERLAY ──────────────────────── */}
-      {onboardingStep >= 0 && onboardingStep < ONBOARDING_STEPS.length && (
-        <div className="fixed inset-0 z-[100]" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md" dir={isAr ? "rtl" : "ltr"}>
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}>
-              {/* Progress bar */}
-              <div className="h-1 w-full" style={{ background: "var(--border)" }}>
-                <div className="h-full transition-all duration-300" style={{ width: `${((onboardingStep + 1) / ONBOARDING_STEPS.length) * 100}%`, background: "var(--accent)" }} />
-              </div>
-              {/* Content */}
-              <div className="p-6 text-center">
-                <div className="text-3xl mb-4">{ONBOARDING_STEPS[onboardingStep].icon}</div>
-                <h2 className="text-lg font-extrabold mb-3">{ONBOARDING_STEPS[onboardingStep].title}</h2>
-                <p className="text-sm leading-7 whitespace-pre-line" style={{ color: "var(--text-secondary)" }}>{ONBOARDING_STEPS[onboardingStep].desc}</p>
-              </div>
-              {/* Step indicator dots */}
-              <div className="flex justify-center gap-1.5 pb-3">
-                {ONBOARDING_STEPS.map((_, i) => (
-                  <div key={i} className="rounded-full transition-all" style={{ width: i === onboardingStep ? "18px" : "6px", height: "6px", background: i === onboardingStep ? "var(--accent)" : i < onboardingStep ? "var(--blue)" : "var(--border)" }} />
-                ))}
-              </div>
-              {/* Actions */}
-              <div className="flex items-center justify-between p-4" style={{ borderTop: "1px solid var(--border)" }}>
-                <button onClick={() => { setOnboardingStep(-1); try { localStorage.setItem("albayan-onboarded", "1"); } catch {} }}
-                  className="text-xs font-bold px-3 py-2 rounded-lg" style={{ color: "var(--text-muted)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                  {isAr ? "تخطي" : "Skip"}
-                </button>
-                <div className="flex gap-2">
-                  {onboardingStep > 0 && (
-                    <button onClick={() => setOnboardingStep(s => s - 1)}
-                      className="text-xs font-bold px-4 py-2 rounded-lg" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontFamily: "inherit" }}>
-                      {isAr ? "السابق" : "Back"}
-                    </button>
+      {/* ─── GUIDED TOUR ────────────────────────────────── */}
+      {tourStep >= 0 && tourStep < TOUR_STEPS.length && (() => {
+        const step = TOUR_STEPS[tourStep];
+        const isCentered = step.pos === "center" || !tourRect;
+        const pad = 12;
+
+        // Calculate tooltip position
+        let tooltipStyle: React.CSSProperties = {};
+        if (!isCentered && tourRect) {
+          const cx = tourRect.left + tourRect.width / 2;
+          const cy = tourRect.top + tourRect.height / 2;
+          if (step.pos === "below") {
+            tooltipStyle = { position: "fixed", top: tourRect.bottom + pad, left: Math.max(12, Math.min(cx - 170, window.innerWidth - 352)), zIndex: 110 };
+          } else if (step.pos === "above") {
+            tooltipStyle = { position: "fixed", bottom: window.innerHeight - tourRect.top + pad, left: Math.max(12, Math.min(cx - 170, window.innerWidth - 352)), zIndex: 110 };
+          } else if (step.pos === "left") {
+            tooltipStyle = { position: "fixed", top: Math.max(12, cy - 60), right: window.innerWidth - tourRect.left + pad, zIndex: 110 };
+          } else if (step.pos === "right") {
+            tooltipStyle = { position: "fixed", top: Math.max(12, cy - 60), left: tourRect.right + pad, zIndex: 110 };
+          }
+        }
+
+        return (
+          <div className="fixed inset-0 z-[100]" onClick={(e) => { if (e.target === e.currentTarget) { finishTour(); } }}>
+            {/* Dark overlay with cutout for target element */}
+            <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
+              <defs>
+                <mask id="tour-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  {tourRect && (
+                    <rect x={tourRect.left - 6} y={tourRect.top - 6} width={tourRect.width + 12} height={tourRect.height + 12} rx="12" fill="black" />
                   )}
-                  <button onClick={() => {
-                    if (onboardingStep === ONBOARDING_STEPS.length - 1) {
-                      setOnboardingStep(-1);
-                      try { localStorage.setItem("albayan-onboarded", "1"); } catch {}
-                      requestNotificationPermission();
-                    } else {
-                      setOnboardingStep(s => s + 1);
-                      if (ONBOARDING_STEPS[onboardingStep + 1]?.id === "notifications") requestNotificationPermission();
-                    }
-                  }}
-                    className="text-xs font-bold px-5 py-2 rounded-lg text-white" style={{ background: "var(--accent)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-                    {onboardingStep === ONBOARDING_STEPS.length - 1 ? (isAr ? "ابدأ الاستخدام" : "Get Started") : (isAr ? "التالي" : "Next")}
-                  </button>
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" mask="url(#tour-mask)" />
+            </svg>
+
+            {/* Pulsing highlight ring around target */}
+            {tourRect && (
+              <div className="fixed pointer-events-none" style={{ top: tourRect.top - 6, left: tourRect.left - 6, width: tourRect.width + 12, height: tourRect.height + 12, border: "2px solid var(--accent)", borderRadius: "12px", boxShadow: "0 0 0 4px rgba(229,57,53,0.2)", animation: "pulse 2s infinite", zIndex: 105 }} />
+            )}
+
+            {/* Tooltip card */}
+            <div dir={isAr ? "rtl" : "ltr"} style={isCentered ? { position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 110 } : tooltipStyle}>
+              <div className="w-[340px] max-w-[calc(100vw-24px)] rounded-2xl overflow-hidden" style={{ background: "var(--bg-main)", border: "1px solid var(--border)", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+                {/* Red accent bar */}
+                <div className="h-1" style={{ background: "var(--accent)" }} />
+                <div className="p-5">
+                  <h3 className="text-base font-extrabold mb-2">{step.title}</h3>
+                  <p className="text-sm leading-7" style={{ color: "var(--text-secondary)" }}>{step.desc}</p>
+                </div>
+                <div className="flex items-center justify-between px-5 pb-4">
+                  <span className="text-[11px] font-bold" style={{ color: "var(--text-muted)" }}>{tourStep + 1} / {TOUR_STEPS.length}</span>
+                  <div className="flex gap-2">
+                    {tourStep > 0 && (
+                      <button onClick={() => setTourStep(s => s - 1)}
+                        className="text-xs font-bold px-4 py-2 rounded-lg" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)", cursor: "pointer", fontFamily: "inherit" }}>
+                        {isAr ? "السابق" : "Back"}
+                      </button>
+                    )}
+                    <button onClick={() => { tourStep === TOUR_STEPS.length - 1 ? finishTour() : setTourStep(s => s + 1); }}
+                      className="text-xs font-bold px-5 py-2 rounded-lg text-white" style={{ background: "var(--accent)", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                      {tourStep === TOUR_STEPS.length - 1 ? (isAr ? "ابدأ الاستخدام" : "Get Started") : (isAr ? "التالي" : "Next")}
+                    </button>
+                  </div>
                 </div>
               </div>
+              {/* Skip link */}
+              {tourStep < TOUR_STEPS.length - 1 && (
+                <div className="text-center mt-3">
+                  <button onClick={finishTour} className="text-[11px] font-bold" style={{ color: "rgba(255,255,255,0.5)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                    {isAr ? "تخطي الجولة" : "Skip tour"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }

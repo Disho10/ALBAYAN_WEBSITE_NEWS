@@ -196,6 +196,25 @@ export default function SettingsPage() {
               </div>
             </Section>
 
+            {/* Guided Tour */}
+            <Section title={isAr ? "الجولة التعريفية" : "Guided Tour"}>
+              <div className="rounded-xl p-5" style={{ background: "var(--bg-main)", border: "1px solid var(--border)" }}>
+                <p className="text-sm leading-7 mb-4" style={{ color: "var(--text-secondary)" }}>
+                  {isAr
+                    ? "جولة تفاعلية تأخذك خطوة بخطوة عبر أهم ميزات الخريطة: التصفية، قائمة الأحداث، الطبقات، أدوات القياس والبحث. تظهر تلقائيًا عند أول زيارة."
+                    : "An interactive walkthrough that guides you step by step through the map's key features: filtering, events list, layers, measurement tools and search. It appears automatically on your first visit."}
+                </p>
+                <button onClick={() => {
+                  try { localStorage.removeItem("albayan-onboarded"); } catch {}
+                  window.location.href = "/";
+                }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition hover:opacity-90"
+                  style={{ background: "var(--blue-soft)", color: "var(--blue)", border: "1px solid var(--border)" }}>
+                  {isAr ? "إعادة الجولة التعريفية" : "Replay Guided Tour"}
+                </button>
+              </div>
+            </Section>
+
             <div className="flex flex-col md:flex-row gap-3">
               <button onClick={handleSave} className={`flex-1 transition rounded-xl px-5 py-4 font-extrabold text-white ${saved ? "bg-green-600" : ""}`} style={saved ? {} : { background: "var(--accent)" }}>
                 {saved ? t("saved") : t("saveSettings")}
